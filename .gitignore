@@ -1,0 +1,28 @@
+# Gitignore file for AI Classroom Allocation System
+# This file is used to specify files and directories that should be ignored by Git.
+# It is important to keep this file updated to avoid committing unnecessary files to the repository.
+
+# General
+__pycache__/
+*.pyc
+*.pyo
+*.log
+.env
+.vscode/
+
+# Python
+.venv/
+env/
+*.egg-info/
+
+# React
+node_modules/
+build/
+dist/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS-specific
+.DS_Store
+Thumbs.db

@@ -10,7 +10,9 @@ __pycache__/
 .env
 .vscode/
 
+
 # Python
+venv/
 .venv/
 env/
 *.egg-info/
@@ -26,3 +28,6 @@ dist/
 # OS-specific
 .DS_Store
 Thumbs.db
+
+# db files
+db/config.json

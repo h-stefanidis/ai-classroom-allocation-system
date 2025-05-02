@@ -16,6 +16,7 @@ venv/
 .venv/
 env/
 *.egg-info/
+classforge
 
 # React
 node_modules/

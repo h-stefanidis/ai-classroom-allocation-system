@@ -80,7 +80,7 @@ original_data['net_affiliation_0_SchoolActivit'] = pd.concat([
     pd.DataFrame(affil_edges)
 ], ignore_index=True)
 
-# ✅ Update participants sheet
+# Update participants sheet
 participants_df = original_data['participants']
 participant_columns = participants_df.columns.tolist()
 participant_columns.remove('Participant-ID')
@@ -97,7 +97,7 @@ new_participants_df = pd.DataFrame(new_participants)
 updated_participants_df = pd.concat([participants_df, new_participants_df], ignore_index=True)
 original_data['participants'] = updated_participants_df
 
-# ✅ Save full updated workbook
+#Save full updated workbook
 final_path = "../SchoolData/Student_Survey_AllSheets_Updated.xlsx"
 with pd.ExcelWriter(final_path, engine='xlsxwriter') as writer:
     for name, df in original_data.items():

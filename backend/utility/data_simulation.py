@@ -1,24 +1,22 @@
-# Re-run final export after code state reset
-
 import pandas as pd
 import numpy as np
+from faker import Faker
 
-# Reload and parse all sheets from the original file
+# Load Excel file
 xls = pd.ExcelFile("../SchoolData/Student Survey - Jan.xlsx")
 original_sheets = xls.sheet_names
 original_data = {sheet: xls.parse(sheet) for sheet in original_sheets}
 
-# Clean and simulate responses again
-responses_df = xls.parse('responses')
+# Clean original responses
+responses_df = original_data['responses']
+responses_df['Participant-ID'] = responses_df['Participant-ID'].astype(str)
+responses_df['Status'] = responses_df['Status'].str.strip().str.lower()
 responses_cleaned = responses_df.drop(columns=['question5'], errors='ignore')
-responses_cleaned['Status'] = responses_cleaned['Status'].str.strip().str.lower()
-responses_cleaned['Participant-ID'] = responses_cleaned['Participant-ID'].astype(str)
 likert_cols = responses_cleaned.select_dtypes(include='float64').columns.tolist()
 for col in likert_cols:
     responses_cleaned[col].fillna(responses_cleaned[col].median(), inplace=True)
 
 # Simulate 500 new responses
-from faker import Faker
 faker = Faker()
 np.random.seed(42)
 num_new = 500
@@ -39,11 +37,12 @@ simulated_data['survey-instance-id'] = list(range(responses_cleaned['survey-inst
                                                   responses_cleaned['survey-instance-id'].max() + 1 + num_new))
 simulated_data['Participant-ID'] = new_ids
 simulated_data['Status'] = np.random.choice(responses_cleaned['Status'], size=num_new, replace=True)
+
 simulated_df = pd.DataFrame(simulated_data)
 combined_responses = pd.concat([responses_cleaned, simulated_df], ignore_index=True)
 original_data['responses'] = combined_responses
 
-# Helper to simulate Poisson-based edges
+# Helper: simulate Poisson-based edges
 def simulate_poisson_edges(existing_df, new_ids, all_ids, lambda_estimate):
     edges = []
     for source_id in new_ids:
@@ -54,7 +53,7 @@ def simulate_poisson_edges(existing_df, new_ids, all_ids, lambda_estimate):
             edges.append({'Source': source_id, 'Target': target})
     return pd.concat([existing_df, pd.DataFrame(edges)], ignore_index=True)
 
-# Recreate updated networks
+# Update networks
 all_ids = combined_responses['Participant-ID'].tolist()
 network_sheets = [
     'net_0_Friends', 'net_1_Influential', 'net_2_Feedback',
@@ -66,7 +65,7 @@ for sheet in network_sheets:
     updated_df = simulate_poisson_edges(existing_df, new_ids, all_ids, lambda_estimate)
     original_data[sheet] = updated_df
 
-# Affiliation network
+# Update affiliation network
 affiliations_df = original_data['affiliations']
 affiliation_ids = affiliations_df['ID'].dropna().unique()
 affil_edges = []
@@ -81,10 +80,27 @@ original_data['net_affiliation_0_SchoolActivit'] = pd.concat([
     pd.DataFrame(affil_edges)
 ], ignore_index=True)
 
-# Save to final Excel file
-final_path = "../SchoolData/Student_Survey_Full_Updated.xlsx"
+# ✅ Update participants sheet
+participants_df = original_data['participants']
+participant_columns = participants_df.columns.tolist()
+participant_columns.remove('Participant-ID')
+
+new_participants = []
+for pid in new_ids:
+    row = {'Participant-ID': pid}
+    for col in participant_columns:
+        values = participants_df[col].dropna().unique()
+        row[col] = np.random.choice(values) if len(values) > 0 else None
+    new_participants.append(row)
+
+new_participants_df = pd.DataFrame(new_participants)
+updated_participants_df = pd.concat([participants_df, new_participants_df], ignore_index=True)
+original_data['participants'] = updated_participants_df
+
+# ✅ Save full updated workbook
+final_path = "../SchoolData/Student_Survey_AllSheets_Updated.xlsx"
 with pd.ExcelWriter(final_path, engine='xlsxwriter') as writer:
     for name, df in original_data.items():
         df.to_excel(writer, sheet_name=name[:31], index=False)
 
-final_path
+print("Saved to:", final_path)

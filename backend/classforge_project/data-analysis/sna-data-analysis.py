@@ -7,14 +7,14 @@ import networkx as nx
 # File path and configuration
 excel_path = "./backend/SchoolData/Student_Survey_AllSheets_Updated.xlsx"
 
-EDGE_TYPE = {
-    "friend": 0,
-    "influence": 1,
-    "feedback": 2,
-    "more_time": 3,
-    "advice": 4,
-    "disrespect": 5
-}
+# EDGE_TYPE = {
+#     "friend": 0,
+#     "influence": 1,
+#     "feedback": 2,
+#     "more_time": 3,
+#     "advice": 4,
+#     "disrespect": 5
+# }
 
 network_sheets = {
     "friend": "net_0_Friends",

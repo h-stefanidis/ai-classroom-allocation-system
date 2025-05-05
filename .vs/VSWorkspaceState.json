@@ -1,0 +1,14 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\backend",
+    "\\backend\\app",
+    "\\backend\\app\\models",
+    "\\backend\\app\\routes",
+    "\\db",
+    "\\frontend",
+    "\\ml"
+  ],
+  "SelectedNode": "\\db\\db_manager.py",
+  "PreviewInSolutionExplorer": false
+}

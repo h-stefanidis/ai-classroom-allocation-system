@@ -9,7 +9,7 @@ __pycache__/
 *.log
 .env
 .vscode/
-
+.vs/
 
 # Python
 venv/

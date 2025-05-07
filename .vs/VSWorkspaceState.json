@@ -6,9 +6,8 @@
     "\\backend\\app\\models",
     "\\backend\\app\\routes",
     "\\db",
-    "\\frontend",
-    "\\ml"
+    "\\frontend"
   ],
-  "SelectedNode": "\\db\\db_manager.py",
+  "SelectedNode": "\\db\\db_usage.py",
   "PreviewInSolutionExplorer": false
 }

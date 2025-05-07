@@ -67,7 +67,8 @@ with torch.no_grad():
     embeddings = model(data.x, data.edge_index, data.edge_type).cpu().numpy()
 
 # KMeans
-num_clusters = 5
+no_of_classrooms  = 5
+num_clusters = no_of_classrooms
 kmeans = KMeans(n_clusters=num_clusters, random_state=42)
 cluster_labels = torch.tensor(kmeans.fit_predict(embeddings), dtype=torch.long)
 

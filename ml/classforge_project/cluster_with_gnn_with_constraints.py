@@ -139,4 +139,7 @@ if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
 
     torch.save(clustered_data, "data/student_graph_clustered.pt")
     print("✅ GNN + CP-SAT allocation complete. Saved to: data/student_graph_clustered.pt")
-    # exit()
+    
+# To handle when the program doesn't quit automatically
+print("✅ Program exited after saving clustered graph.")
+os._exit(0)

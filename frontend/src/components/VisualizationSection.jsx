@@ -41,3 +41,25 @@ const VisualizationSection = () => {
 };
 
 export default VisualizationSection;
+
+// import React, { useEffect, useState } from "react";
+// import ForceGraph2D from "react-force-graph";
+
+// function VisualizationSection() {
+//   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
+
+//   useEffect(() => {
+//     fetch("http://localhost:5000/api/visualization-data")
+//       .then((res) => res.json())
+//       .then((data) => setGraphData(data))
+//       .catch((err) => console.error("Error fetching visualization data:", err));
+//   }, []);
+
+//   return (
+//     <div style={{ height: "400px", width: "100%" }}>
+//       <ForceGraph2D graphData={graphData} nodeAutoColorBy="group" />
+//     </div>
+//   );
+// }
+
+// export default VisualizationSection;

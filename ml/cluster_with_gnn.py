@@ -13,21 +13,15 @@ class ImprovedClassForgeGNN(torch.nn.Module):
 
         self.sage1 = SAGEConv(in_channels, hidden_channels)
         self.sage2 = SAGEConv(hidden_channels, hidden_channels)
-
         self.gat1 = GATConv(hidden_channels, hidden_channels, heads=2, concat=False)
-
         self.rgcn = RGCNConv(hidden_channels, embedding_size, num_relations=num_relations)
-
         self.fusion = torch.nn.Linear(hidden_channels + hidden_channels + embedding_size, embedding_size)
 
     def forward(self, x, edge_index, edge_type):
         x_sage = F.relu(self.sage1(x, edge_index))
         x_sage = F.dropout(F.relu(self.sage2(x_sage, edge_index)), p=0.2, training=self.training)
-
         x_gat = F.dropout(F.relu(self.gat1(x_sage, edge_index)), p=0.2, training=self.training)
-
         x_rgcn = self.rgcn(x_gat, edge_index, edge_type)
-
         x_all = torch.cat([x_sage, x_gat, x_rgcn], dim=1)
         out = self.fusion(x_all)
         return F.normalize(out, p=2, dim=1)
@@ -67,7 +61,8 @@ with torch.no_grad():
     embeddings = model(data.x, data.edge_index, data.edge_type).cpu().numpy()
 
 # KMeans
-num_clusters = 5
+no_of_classrooms = 5
+num_clusters = no_of_classrooms
 kmeans = KMeans(n_clusters=num_clusters, random_state=42)
 cluster_labels = torch.tensor(kmeans.fit_predict(embeddings), dtype=torch.long)
 

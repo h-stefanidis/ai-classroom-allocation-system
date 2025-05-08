@@ -24,7 +24,7 @@ network_sheets = {
 def build_graph_from_excel(file_path):
     xl = pd.ExcelFile(file_path)
     participants = xl.parse("participants")
-    participants = participants.dropna(subset=["Participant-ID"])
+    # participants = participants.dropna(subset=["Participant-ID"])
     participants["Participant-ID"] = participants["Participant-ID"].astype(int)
 
     id_to_index = {pid: idx for idx, pid in enumerate(participants["Participant-ID"])}

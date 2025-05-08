@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+import hashlib
 
 # Add project root to sys.path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
@@ -153,6 +154,40 @@ def classroom_allocation():
     )
 
     return {"message": "Allocations updated", "total": len(insert_values)}
+
+
+# For login and sign up
+def hash_password(password):
+    return hashlib.sha256(password.encode('utf-8')).hexdigest()
+
+
+
+def register_user(email, password, username, role="user"):
+    password_hash = hash_password(password)
+
+    with db:
+        query = """
+        INSERT INTO public.users (email, password_hash,username, role)
+        VALUES (%s, %s, %s)
+        ON CONFLICT (email) DO NOTHING;
+        """
+        db.execute_query(query, (email, password_hash,username, role))
+
+
+
+def login_user(email, password):
+    password_hash = hash_password(password)
+
+    with db:
+        query = """
+        SELECT user_id, role FROM public.users
+        WHERE email = %s AND password_hash = %s;
+        """
+        result = db.query_one(query, (email, password_hash))
+
+    if result:
+        return {"user_id": result[0], "role": result[1]}
+    return None
 
 
 def classroom_update(participant_id: int, classroom_id: int):

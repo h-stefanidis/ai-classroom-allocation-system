@@ -79,9 +79,6 @@ export default createTheme({
     primary: {
       main: "#1976d2",
     },
-    secondary: {
-      main: "#9c27b0",
-    },
   },
   typography: {
     ...typography,

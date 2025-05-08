@@ -55,6 +55,7 @@ import OnboardingPage from "pages/OnboardingPage";
 
 // @mui icons
 import Icon from "@mui/material/Icon";
+import AllocationPage from "layouts/tables";
 
 const routes = [
   {
@@ -64,6 +65,14 @@ const routes = [
     icon: <Icon fontSize="small">dashboard</Icon>,
     route: "/dashboard/overview",
     component: <OverviewPage />,
+  },
+  {
+    type: "collapse",
+    name: "Classroom Allocator",
+    key: "classroom-allocator",
+    icon: <Icon fontSize="small">hub</Icon>,
+    route: "/dashboard/tables",
+    component: <AllocationPage />,
   },
   {
     type: "collapse",

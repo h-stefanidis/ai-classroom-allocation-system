@@ -1,4 +1,4 @@
-from database import Database
+from .database import Database
 
 # Get the singleton instance and connect
 def get_db():

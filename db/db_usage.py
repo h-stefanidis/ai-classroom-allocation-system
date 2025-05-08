@@ -1,5 +1,5 @@
-from db_manager import get_db
-from ml.build_graph import build_graph_from_dataframe
+from .db_manager import get_db
+# from ml.build_graph import build_graph_from_dataframe
 import json
 from pathlib import Path
 
@@ -76,6 +76,42 @@ def classroom_allocation_update():
 
     return {"message": "Allocations updated", "total": len(insert_values)}
 
+def get_all_participants():
+    with db:
+        df = db.query_df("SELECT * FROM raw.participants;")
+        return df
+
+def get_all_more_time():
+    with db:
+        df = db.query_df("SELECT * FROM raw.more_time;")
+        return df
+
+def get_all_influential():
+    with db:
+        df = db.query_df("SELECT * FROM raw.influential;")
+        return df
+
+def get_all_friends():
+    with db:
+        df = db.query_df("SELECT * FROM raw.friends;")
+        return df
+
+def get_all_feedback():
+    with db:
+        df = db.query_df("SELECT * FROM raw.feedback;")
+        return df
+
+def get_all_advice():
+    with db:
+        df = db.query_df("SELECT * FROM raw.feedback;")
+        return df
+
+def get_all_disrespect():
+    with db:
+        df = db.query_df("SELECT * FROM raw.disrespect;")
+        return df
+
+
 # TODO: Move out of file?
-create_allocations_table()
-populate_allocations_table()
+# create_allocations_table()
+# populate_allocations_table()

@@ -6,6 +6,8 @@ from flask_login import LoginManager
 from flask_cors import CORS
 from config import Config
 
+from app.routes.student_rel_anly import student_rel_bp
+
 
 # Initialise extensions
 db = SQLAlchemy()
@@ -46,6 +48,8 @@ def createApp(config_class=Config):
     #app.register_blueprint(api_bp, url_prefix='/api')
 
     from app.routes.auth import auth_bp as auth_bp
+    app.register_blueprint(student_rel_bp)
     app.register_blueprint(auth_bp, url_prefix='/auth')
+    app = Flask(__name__)
 
     return app

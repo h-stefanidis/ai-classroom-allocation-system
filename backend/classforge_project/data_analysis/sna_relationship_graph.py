@@ -1,38 +1,38 @@
-from flask import Flask, jsonify
 import pandas as pd
 import networkx as nx
 from networkx.algorithms.community import greedy_modularity_communities
+from flask import jsonify
 
-app = Flask(__name__)
-
-# Load Excel and networks
-excel_path = "../backend/classforge_project/SchoolData/Student_Survey_AllSheets_Updated.xlsx"
-network_sheets = {
-    "friend": "net_0_Friends",
-    "influence": "net_1_Influential",
-    "feedback": "net_2_Feedback",
-    "more_time": "net_3_MoreTime",
-    "advice": "net_4_Advice",
-    "disrespect": "net_5_Disrespect"
-}
+from db.db_usage import (
+    get_all_friends, get_all_influential, get_all_feedback,
+    get_all_more_time, get_all_advice, get_all_disrespect
+)
 
 network_analysis = {}
 
-def load_networks():
-    xls = pd.ExcelFile(excel_path)
-    for key, sheet in network_sheets.items():
-        df = xls.parse(sheet)
+network_fetchers = {
+    "friend": get_all_friends,
+    "influence": get_all_influential,
+    "feedback": get_all_feedback,
+    "more_time": get_all_more_time,
+    "advice": get_all_advice,
+    "disrespect": get_all_disrespect
+}
+
+def load_networks_from_db():
+    for key, fetch_func in network_fetchers.items():
+        df = fetch_func()
+        if df is None or df.empty:
+            continue
+
         df.columns = df.columns.str.strip()
         df.dropna(subset=[df.columns[0], df.columns[1]], inplace=True)
+        edges = df.iloc[:, :2].values.tolist()
 
         G = nx.DiGraph()
-        G.add_edges_from(df.values)
+        G.add_edges_from(edges)
+        network_analysis[key] = {"graph": G}
 
-        network_analysis[key] = {
-            "graph": G
-        }
-
-# Convert graph to JSON-friendly format
 def serialize_graph(G):
     pos = nx.spring_layout(G, seed=42, k=0.15)
     community = nx.get_node_attributes(G, "community")
@@ -58,26 +58,19 @@ def serialize_graph(G):
 
     return {"nodes": nodes, "edges": edges}
 
-@app.route("/friend-network-graph", methods=["GET"])
-def get_friend_network():
-    try:
-        G = network_analysis["friend"]["graph"]
+def get_friend_network_graph():
+    if "friend" not in network_analysis:
+        load_networks_from_db()
 
-        # Assign community if not already present
-        if not nx.get_node_attributes(G, "community"):
-            communities = list(greedy_modularity_communities(G.to_undirected()))
-            for i, community in enumerate(communities):
-                for node in community:
-                    G.nodes[node]["community"] = i
+    G = network_analysis["friend"]["graph"]
 
-        data = serialize_graph(G)
-        return jsonify(data)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    if not nx.get_node_attributes(G, "community"):
+        communities = list(greedy_modularity_communities(G.to_undirected()))
+        for i, community in enumerate(communities):
+            for node in community:
+                G.nodes[node]["community"] = i
 
-if __name__ == "__main__":
-    load_networks()
-    app.run(debug=True)
+    return jsonify(serialize_graph(G))
 
 
 # React code

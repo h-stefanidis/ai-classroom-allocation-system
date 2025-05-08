@@ -111,13 +111,13 @@ def classroom_allocation():
     print(participants_df)
 
     build_graph_from_dataframe(filtered_df)
-    export_clusters(participants_df)
+    allocation_data = export_clusters(participants_df)
 
 
-    # Step 2: Load JSON file
-    json_path = Path("ml/classforge_project/SchoolData/data/classroom_allocations.json")
-    with open(json_path, "r") as f:
-        allocation_data = json.load(f)
+    ## Step 2: Load JSON file
+    #json_path = Path("ml/classforge_project/SchoolData/data/classroom_allocations.json")
+    #with open(json_path, "r") as f:
+    #    allocation_data = json.load(f)
 
     allocations = allocation_data["Allocations"]
 

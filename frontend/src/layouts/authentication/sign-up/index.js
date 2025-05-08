@@ -34,10 +34,15 @@ function Cover() {
     }
 
     try {
-      const response = await fetch("https://your-api-url.com/auth/signup", {
+      const response = await fetch("http://127.0.0.1:5000/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({
+          username: name, // Fix field name
+          email,
+          password,
+          role: "student", // or "teacher", depending on your app logic
+        }),
       });
 
       if (!response.ok) throw new Error("Signup failed");

@@ -83,28 +83,17 @@ def hash_password(password):
     return hashlib.sha256(password.encode('utf-8')).hexdigest()
 
 
-def create_users_table():
-    with db:
-        query = """
-        CREATE TABLE IF NOT EXISTS raw.users (
-            user_id SERIAL PRIMARY KEY,
-            email TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            role TEXT DEFAULT 'user'
-        );
-        """
-        db.execute_query(query)
 
-def register_user(email, password, role="user"):
+def register_user(email, password, username, role="user"):
     password_hash = hash_password(password)
 
     with db:
         query = """
-        INSERT INTO raw.users (email, password_hash, role)
+        INSERT INTO public.users (email, password_hash,username, role)
         VALUES (%s, %s, %s)
         ON CONFLICT (email) DO NOTHING;
         """
-        db.execute_query(query, (email, password_hash, role))
+        db.execute_query(query, (email, password_hash,username, role))
 
 
 
@@ -113,7 +102,7 @@ def login_user(email, password):
 
     with db:
         query = """
-        SELECT user_id, role FROM raw.users
+        SELECT user_id, role FROM public.users
         WHERE email = %s AND password_hash = %s;
         """
         result = db.query_one(query, (email, password_hash))
@@ -121,9 +110,6 @@ def login_user(email, password):
     if result:
         return {"user_id": result[0], "role": result[1]}
     return None
-
-
-
 
 
 

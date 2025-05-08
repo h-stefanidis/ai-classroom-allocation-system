@@ -39,7 +39,7 @@ def get_all_allocations():
 def change_student_allocation():
     data = request.get_json()
     student_id = data.get("id")
-    classroom_id = data.get("classroom_id")  # 1–4 or 0 for unallocated
+    classroom_id = data.get("classroom_id")  # 1ï¿½4 or 0 for unallocated
 
     if not student_id or classroom_id is None:
         return jsonify({"error": "Missing id or classroom_id"}), 400

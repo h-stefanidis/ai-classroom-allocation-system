@@ -1,0 +1,7 @@
+psycopg2-binary
+pandas
+numpy
+torch
+scikit-learn
+networkx
+matplotlib

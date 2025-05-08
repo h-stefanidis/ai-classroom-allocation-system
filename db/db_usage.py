@@ -1,18 +1,69 @@
-from db_manager import get_db
-from ml.build_graph import build_graph_from_dataframe
-import json
+import sys
 from pathlib import Path
 
+# Add project root to sys.path
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+
+from db_manager import get_db
+from ml.build_graph import build_graph_from_dataframe
+from ml.export_clusters import export_clusters
+from ml.cluster_with_gnn_with_constraints import cluster_constraints
+from ml.evaluate_model import analyze_graph
+#import ml.evaluate_model
+import json
+from pathlib import Path
 
 # Get Database reference
 db = get_db()
 
 
 # Get all participants from SupaBase
-def get_all_participants():
+def get_all_participants_ids():
     with db:
         df = db.query_df("SELECT participant_id FROM raw.participants;")
         return df
+
+def get_all_participants():
+    with db:
+        df = db.query_df("SELECT * FROM raw.participants;")
+        return df
+
+
+
+def get_all_more_time():
+    with db:
+        df = db.query_df("SELECT * FROM raw.more_time;")
+        return df
+
+def get_all_influential():
+    with db:
+        df = db.query_df("SELECT * FROM raw.influential;")
+        return df
+
+def get_all_friends():
+    with db:
+        df = db.query_df("SELECT * FROM raw.friends;")
+        return df
+
+def get_all_feedback():
+    with db:
+        df = db.query_df("SELECT * FROM raw.feedback;")
+        return df
+
+def get_all_advice():
+    with db:
+        df = db.query_df("SELECT * FROM raw.feedback;")
+        return df
+
+def get_all_disrespect():
+    with db:
+        df = db.query_df("SELECT * FROM raw.disrespect;")
+        return df
+
+
+
+
+
 
 
 # Create Allocations Table (Column 1: ID, Column 2: Classroom Allocation)
@@ -29,7 +80,7 @@ def create_allocations_table():
 
 # Populate new Allocations Table
 def populate_allocations_table():
-    participants_df = get_all_participants()
+    participants_df = get_all_participants_ids()
     if participants_df is None or participants_df.empty:
         print("No participants found.")
         return
@@ -47,8 +98,19 @@ def populate_allocations_table():
 
 def classroom_allocation_update():
     # Step 1: Load participant dataframe (if needed elsewhere)
+
+
+
     participants_df = get_all_participants()
-    build_graph_from_dataframe(participants_df)
+
+    feature_columns = ["participant_id", "perc_effort", "attendance", "perc_academic", "complete_years", "house"]
+    filtered_df = participants_df[feature_columns + ["participant_id"]]
+
+    print(participants_df)
+
+    build_graph_from_dataframe(filtered_df)
+    #export_clusters(participants_df)
+
 
     # Step 2: Load JSON file
     json_path = Path("ml/classforge_project/SchoolData/data/classroom_allocations.json")
@@ -76,6 +138,37 @@ def classroom_allocation_update():
 
     return {"message": "Allocations updated", "total": len(insert_values)}
 
+def inspect_clustered_graph():
+    participants_df = get_all_participants()
+
+   
+
 # TODO: Move out of file?
-create_allocations_table()
-populate_allocations_table()
+#create_allocations_table() # Works
+#populate_allocations_table() # Maybe works, maybe duplicates TODO: Fix and reassure
+#classroom_allocation_update()
+
+# Build Graph From DataFrame 
+alldf = get_all_participants()
+
+#friends_df = get_all_friends()
+#influential_df = get_all_influential()
+#feedback_df = get_all_feedback()
+#more_time_df = get_all_more_time()
+#advice_df = get_all_advice()
+#disrespect_df = get_all_disrespect()
+
+#build_graph_from_dataframe(alldf, friends_df, influential_df, feedback_df, more_time_df, advice_df, disrespect_df)
+
+# Cluster Constraints
+#cluster_constraints()
+
+
+#Analyze graph
+alldf = get_all_participants()
+analyze_graph(alldf)
+
+
+
+# Export Clusters
+export_clusters()

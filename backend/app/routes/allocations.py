@@ -1,9 +1,10 @@
 from flask import Blueprint, request, jsonify
-from db.db_manager import (
-    assign_classroom_ml,
-    update_allocation,
-    get_allocations,
-    get_students_in_classroom
+
+from db.db_usage import (
+    
+    classroom_allocation,
+    get_all_participants,
+    get_all_allocations
 )
 
 allocations_bp = Blueprint("allocations", __name__)
@@ -18,19 +19,20 @@ def allocate_students():
         return jsonify({"error": "No student_ids provided"}), 400
 
     try:
-        assignments = assign_classroom_ml(student_ids)
+        # Call the proper allocation function from db_usage
+        assignments = classroom_allocation()
         return jsonify({"status": "success", "assignments": assignments})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
 # GET /allocations: Get all allocations, or filter by student_id or classroom_id
-@allocations_bp.route("/allocations", methods=["GET"])
+@allocations_bp.route("/get_allocations", methods=["GET"])
 def get_all_allocations():
     student_id = request.args.get("student_id")
     classroom_id = request.args.get("classroom_id", type=int)  # '0' means unallocated
 
-    allocations = get_allocations(student_id=student_id, classroom_id=classroom_id)
+    allocations = get_all_allocations()
     return jsonify(allocations)
 
 
@@ -39,14 +41,17 @@ def get_all_allocations():
 def change_student_allocation():
     data = request.get_json()
     student_id = data.get("id")
-    classroom_id = data.get("classroom_id")  # 1–4 or 0 for unallocated
+    classroom_id = data.get("classroom_id")  # 1ï¿½4 or 0 for unallocated
 
     if not student_id or classroom_id is None:
         return jsonify({"error": "Missing id or classroom_id"}), 400
 
-    success = update_allocation(student_id, classroom_id, source="manual")
-    if not success:
-        return jsonify({"error": "Update failed or student not found"}), 404
+    # Call the update function
+    result = classroom_update(student_id, classroom_id)
+
+    # Handle response from update logic
+    if result.get("status") != "success":
+        return jsonify({"error": "Update failed", "details": result}), 404
 
     return jsonify({
         "status": "updated",

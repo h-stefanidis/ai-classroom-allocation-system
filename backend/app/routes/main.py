@@ -1,4 +1,5 @@
 from ml.build_graph_from_db import build_graph_from_db
+from ml.cluster_with_gnn_with_constraints import cluster_students_with_gnn
 from flask import Blueprint, request, jsonify
 from db.db_manager import get_db
 
@@ -18,10 +19,8 @@ def run_pipeline():
     # Step 2: Build graph
     db=get_db()
     graph = build_graph_from_db(db)
+    cluster_students_with_gnn(graph)
 
-
-    ## Step 3: Run model
-    results = run_model(graph, num_classrooms)
 
     ## Step 4: Post-process
     #final_output = postprocess_results(results, df)

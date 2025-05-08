@@ -27,7 +27,11 @@ def get_all_participants():
     with db:
         df = db.query_df("SELECT * FROM raw.participants;")
         return df
-
+        
+def get_all_allocations():
+    with db:
+        df = db.query_df("SELECT * FROM raw.allocations;")
+        return df
 
 
 def get_all_more_time():

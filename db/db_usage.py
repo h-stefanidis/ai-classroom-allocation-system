@@ -5,11 +5,11 @@ import hashlib
 # Add project root to sys.path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from db_manager import get_db
-from ml.build_graph import build_graph_from_dataframe
-from ml.export_clusters import export_clusters
-from ml.cluster_with_gnn_with_constraints import cluster_constraints
-from ml.evaluate_model import analyze_graph
+from .db_manager import get_db
+# from ml.build_graph import build_graph_from_dataframe
+# from ml.export_clusters import export_clusters
+# from ml.cluster_with_gnn_with_constraints import cluster_constraints
+# from ml.evaluate_model import analyze_graph
 #import ml.evaluate_model
 import json
 from pathlib import Path
@@ -130,14 +130,14 @@ def classroom_allocation():
     export_clusters()
 
     for classroom_label, student_ids in allocations.items():
-    classroom_id = int(classroom_label.split("_")[1])  # e.g., "Classroom_2" -> 2
-    for student_id in student_ids:
-        db.execute("""
-            INSERT INTO raw.allocations (student_id, classroom)
-            VALUES (%s, %s)
-            ON CONFLICT (student_id) DO UPDATE
-            SET classroom = EXCLUDED.classroom;
-        """, (student_id, classroom_id))
+        classroom_id = int(classroom_label.split("_")[1])  # e.g., "Classroom_2" -> 2
+        for student_id in student_ids:
+            db.execute("""
+                INSERT INTO raw.allocations (student_id, classroom)
+                VALUES (%s, %s)
+                ON CONFLICT (student_id) DO UPDATE
+                SET classroom = EXCLUDED.classroom;
+            """, (student_id, classroom_id))
 
     # Step 4: Insert new allocations
     insert_values = []
@@ -167,26 +167,35 @@ def register_user(email, password, username, role="user"):
 
     with db:
         query = """
-        INSERT INTO public.users (email, password_hash,username, role)
+        INSERT INTO public.users (email, password_hash, username)
         VALUES (%s, %s, %s)
         ON CONFLICT (email) DO NOTHING;
         """
-        db.execute_query(query, (email, password_hash,username, role))
+        db.execute_query(query, (email, password_hash, username))
+    return {"success":True}
 
 
 
 def login_user(email, password):
     password_hash = hash_password(password)
 
+    query = """
+    SELECT user_id, username, role 
+    FROM public.users 
+    WHERE email = %s AND password_hash = %s
+    LIMIT 1;
+    """
+
     with db:
-        query = """
-        SELECT user_id, role FROM public.users
-        WHERE email = %s AND password_hash = %s;
-        """
-        result = db.query_one(query, (email, password_hash))
+        result = db.fetch_one(query, (email, password_hash))
 
     if result:
-        return {"user_id": result[0], "role": result[1]}
+        user_id, username, role = result
+        return {
+            "user_id": user_id,
+            "username": username,
+            "role": role or "user"
+        }
     return None
 
 

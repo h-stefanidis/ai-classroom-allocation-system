@@ -46,6 +46,7 @@ import SignIn from "layouts/authentication/sign-in";
 import SignUp from "layouts/authentication/sign-up";
 import SchedulePage from "pages/SchedulePage";
 import PreferencesPage from "pages/PreferencesPage";
+import Insights from "layouts/insights";
 import FeedbackPage from "pages/FeedbackPage";
 import AdminToolsPage from "pages/AdminToolsPage";
 import OverviewPage from "pages/OverviewPage";
@@ -65,6 +66,14 @@ const routes = [
     icon: <Icon fontSize="small">dashboard</Icon>,
     route: "/dashboard/overview",
     component: <OverviewPage />,
+  },
+  {
+    type: "collapse",
+    name: "Insights",
+    key: "insights",
+    icon: <Icon>insights</Icon>,
+    route: "/insights",
+    component: <Insights />,
   },
   {
     type: "collapse",

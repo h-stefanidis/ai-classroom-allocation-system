@@ -44,11 +44,83 @@ import Notifications from "layouts/notifications";
 import Profile from "layouts/profile";
 import SignIn from "layouts/authentication/sign-in";
 import SignUp from "layouts/authentication/sign-up";
+import SchedulePage from "pages/SchedulePage";
+import PreferencesPage from "pages/PreferencesPage";
+import FeedbackPage from "pages/FeedbackPage";
+import AdminToolsPage from "pages/AdminToolsPage";
+import OverviewPage from "pages/OverviewPage";
+import VisualizationPage from "pages/VisualizationPage";
+import UploadDataPage from "pages/UploadDataPage";
+import OnboardingPage from "pages/OnboardingPage";
 
 // @mui icons
 import Icon from "@mui/material/Icon";
 
 const routes = [
+  {
+    type: "collapse",
+    name: "Overview",
+    key: "overview",
+    icon: <Icon fontSize="small">dashboard</Icon>,
+    route: "/dashboard/overview",
+    component: <OverviewPage />,
+  },
+  {
+    type: "collapse",
+    name: "Visualization",
+    key: "visualization",
+    icon: <Icon fontSize="small">hub</Icon>,
+    route: "/dashboard/visualization",
+    component: <VisualizationPage />,
+  },
+  {
+    type: "collapse",
+    name: "Upload Data",
+    key: "upload-data",
+    icon: <Icon fontSize="small">upload</Icon>,
+    route: "/upload-data",
+    component: <UploadDataPage />,
+  },
+  {
+    type: "collapse",
+    name: "Onboarding",
+    key: "onboarding",
+    icon: <Icon fontSize="small">tour</Icon>,
+    route: "/onboarding",
+    component: <OnboardingPage />,
+  },
+  {
+    type: "collapse",
+    name: "Schedule",
+    key: "schedule",
+    icon: <Icon fontSize="small">event</Icon>,
+    route: "/schedule",
+    component: <SchedulePage />,
+  },
+  {
+    type: "collapse",
+    name: "Preferences",
+    key: "preferences",
+    icon: <Icon fontSize="small">schedule</Icon>,
+    route: "/preferences",
+    component: <PreferencesPage />,
+  },
+  {
+    type: "collapse",
+    name: "Feedback",
+    key: "feedback",
+    icon: <Icon fontSize="small">feedback</Icon>,
+    route: "/feedback",
+    component: <FeedbackPage />,
+  },
+  {
+    type: "collapse",
+    name: "Admin Tools",
+    key: "admin-tools",
+    icon: <Icon fontSize="small">admin_panel_settings</Icon>,
+    route: "/admin-tools",
+    component: <AdminToolsPage />,
+  },
   {
     type: "collapse",
     name: "Dashboard",
@@ -57,30 +129,30 @@ const routes = [
     route: "/dashboard",
     component: <Dashboard />,
   },
-  {
-    type: "collapse",
-    name: "Tables",
-    key: "tables",
-    icon: <Icon fontSize="small">table_view</Icon>,
-    route: "/tables",
-    component: <Tables />,
-  },
-  {
-    type: "collapse",
-    name: "Billing",
-    key: "billing",
-    icon: <Icon fontSize="small">receipt_long</Icon>,
-    route: "/billing",
-    component: <Billing />,
-  },
-  {
-    type: "collapse",
-    name: "RTL",
-    key: "rtl",
-    icon: <Icon fontSize="small">format_textdirection_r_to_l</Icon>,
-    route: "/rtl",
-    component: <RTL />,
-  },
+  // {
+  //   type: "collapse",
+  //   name: "Tables",
+  //   key: "tables",
+  //   icon: <Icon fontSize="small">table_view</Icon>,
+  //   route: "/tables",
+  //   component: <Tables />,
+  // },
+  // {
+  //   type: "collapse",
+  //   name: "Billing",
+  //   key: "billing",
+  //   icon: <Icon fontSize="small">receipt_long</Icon>,
+  //   route: "/billing",
+  //   component: <Billing />,
+  // },
+  // {
+  //   type: "collapse",
+  //   name: "RTL",
+  //   key: "rtl",
+  //   icon: <Icon fontSize="small">format_textdirection_r_to_l</Icon>,
+  //   route: "/rtl",
+  //   component: <RTL />,
+  // },
   {
     type: "collapse",
     name: "Notifications",
@@ -89,14 +161,14 @@ const routes = [
     route: "/notifications",
     component: <Notifications />,
   },
-  {
-    type: "collapse",
-    name: "Profile",
-    key: "profile",
-    icon: <Icon fontSize="small">person</Icon>,
-    route: "/profile",
-    component: <Profile />,
-  },
+  // {
+  //   type: "collapse",
+  //   name: "Profile",
+  //   key: "profile",
+  //   icon: <Icon fontSize="small">person</Icon>,
+  //   route: "/profile",
+  //   component: <Profile />,
+  // },
   {
     type: "collapse",
     name: "Sign In",

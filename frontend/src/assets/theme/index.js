@@ -1,18 +1,3 @@
-/**
-=========================================================
-* Material Dashboard 2 React - v2.2.0
-=========================================================
-
-* Product Page: https://www.creative-tim.com/product/material-dashboard-react
-* Copyright 2023 Creative Tim (https://www.creative-tim.com)
-
-Coded by www.creative-tim.com
-
- =========================================================
-
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-*/
-
 // @mui material components
 import { createTheme } from "@mui/material/styles";
 
@@ -31,7 +16,7 @@ import linearGradient from "assets/theme/functions/linearGradient";
 import pxToRem from "assets/theme/functions/pxToRem";
 import rgba from "assets/theme/functions/rgba";
 
-// Material Dashboard 2 React components base styles for @mui material components
+// Component styles
 import sidenav from "assets/theme/components/sidenav";
 import list from "assets/theme/components/list";
 import listItem from "assets/theme/components/list/listItem";
@@ -85,8 +70,26 @@ import dialogActions from "assets/theme/components/dialog/dialogActions";
 
 export default createTheme({
   breakpoints: { ...breakpoints },
-  palette: { ...colors },
-  typography: { ...typography },
+  palette: {
+    ...colors,
+    background: {
+      default: "#f5f7fa",
+      paper: "#ffffff",
+    },
+    primary: {
+      main: "#1976d2",
+    },
+    secondary: {
+      main: "#9c27b0",
+    },
+  },
+  typography: {
+    ...typography,
+    fontFamily: "'Roboto', 'Helvetica', 'Arial', sans-serif",
+    h6: {
+      fontWeight: 600,
+    },
+  },
   boxShadows: { ...boxShadows },
   borders: { ...borders },
   functions: {
@@ -96,7 +99,6 @@ export default createTheme({
     pxToRem,
     rgba,
   },
-
   components: {
     MuiCssBaseline: {
       styleOverrides: {

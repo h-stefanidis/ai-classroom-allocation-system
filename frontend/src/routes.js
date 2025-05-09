@@ -61,6 +61,14 @@ import AllocationPage from "layouts/tables";
 const routes = [
   {
     type: "collapse",
+    name: "Dashboard",
+    key: "dashboard",
+    icon: <Icon fontSize="small">dashboard</Icon>,
+    route: "/dashboard",
+    component: <Dashboard />,
+  },
+  {
+    type: "collapse",
     name: "Overview",
     key: "overview",
     icon: <Icon fontSize="small">dashboard</Icon>,
@@ -107,14 +115,14 @@ const routes = [
     route: "/onboarding",
     component: <OnboardingPage />,
   },
-  {
-    type: "collapse",
-    name: "Schedule",
-    key: "schedule",
-    icon: <Icon fontSize="small">event</Icon>,
-    route: "/schedule",
-    component: <SchedulePage />,
-  },
+  // {
+  //   type: "collapse",
+  //   name: "Schedule",
+  //   key: "schedule",
+  //   icon: <Icon fontSize="small">event</Icon>,
+  //   route: "/schedule",
+  //   component: <SchedulePage />,
+  // },
   {
     type: "collapse",
     name: "Preferences",
@@ -138,14 +146,6 @@ const routes = [
     icon: <Icon fontSize="small">admin_panel_settings</Icon>,
     route: "/admin-tools",
     component: <AdminToolsPage />,
-  },
-  {
-    type: "collapse",
-    name: "Dashboard",
-    key: "dashboard",
-    icon: <Icon fontSize="small">dashboard</Icon>,
-    route: "/dashboard",
-    component: <Dashboard />,
   },
   // {
   //   type: "collapse",

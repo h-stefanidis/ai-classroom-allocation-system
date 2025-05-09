@@ -1,17 +1,8 @@
 import sys
 from pathlib import Path
 import hashlib
-
-# Add project root to sys.path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
-
-from .db_manager import get_db
-# from ml.build_graph import build_graph_from_dataframe
-# from ml.export_clusters import export_clusters
-# from ml.cluster_with_gnn_with_constraints import cluster_constraints
-# from ml.evaluate_model import analyze_graph
-#import ml.evaluate_model
-import json
+from db.db_manager import get_db
 from pathlib import Path
 
 # Get Database reference
@@ -82,6 +73,15 @@ def create_allocations_table():
         """
         db.execute_query(query)
 
+def drop_allocations_table():
+    try:
+        with db:
+            db.execute("DROP TABLE IF EXISTS raw.allocations;")
+        return {"message": "Table 'raw.allocations' dropped successfully."}, 200
+    except Exception as e:
+        return {"error": f"Failed to drop table: {str(e)}"}, 500
+    
+
 
 # Populate new Allocations Table
 def populate_allocations_table():
@@ -101,59 +101,34 @@ def populate_allocations_table():
         db.execute_many(query, data)
 
 
-def classroom_allocation():
-    # Step 1: Load participant dataframe (if needed elsewhere)
+def update_classroom_allocations(allocation_json):
+    """
+    Updates classroom IDs in raw.allocations for existing student IDs based on a JSON dictionary.
+    Structure must be: { "Allocations": { "Classroom_X": [student_id, ...], ... } }
+    """
+    allocations = allocation_json.get("Allocations", {})
+    if not allocations:
+        return {"error": "No allocations found in JSON"}, 400
 
-    participants_df = get_all_participants()
-
-    feature_columns = ["participant_id", "perc_effort", "attendance", "perc_academic", "complete_years", "house"]
-    filtered_df = participants_df[feature_columns + ["participant_id"]]
-
-    print(participants_df)
-
-    build_graph_from_dataframe(filtered_df)
-    allocation_data = export_clusters(participants_df)
-
-
-    ## Step 2: Load JSON file
-    #json_path = Path("ml/classforge_project/SchoolData/data/classroom_allocations.json")
-    #with open(json_path, "r") as f:
-    #    allocation_data = json.load(f)
-
-    allocations = allocation_data["Allocations"]
-
-    # Step 3: Clear old allocations (optional, depending on your use case)
-    db.execute("DELETE FROM raw.allocations")
-
-    # Step 3.5: Update allocations table with new allocations
-    cluster_constraints()
-    export_clusters()
-
+    # Prepare update values
+    update_values = []
     for classroom_label, student_ids in allocations.items():
-        classroom_id = int(classroom_label.split("_")[1])  # e.g., "Classroom_2" -> 2
+        classroom_id = int(classroom_label.split("_")[1])  # e.g., "Classroom_3" -> 3
         for student_id in student_ids:
-            db.execute("""
-                INSERT INTO raw.allocations (student_id, classroom)
-                VALUES (%s, %s)
-                ON CONFLICT (student_id) DO UPDATE
-                SET classroom = EXCLUDED.classroom;
-            """, (student_id, classroom_id))
+            update_values.append((student_id, classroom_id))
 
-    # Step 4: Insert new allocations
-    insert_values = []
-    for classroom_name, student_ids in allocations.items():
-        classroom_number = int(classroom_name.split("_")[1])  # e.g., "Classroom_3" -> 3
-        for student_id in student_ids:
-            insert_values.append((student_id, classroom_number))
+    if not update_values:
+        return {"error": "No valid student allocations found"}, 400
 
-    # Step 5: Perform batch insert
-    db.execute_many(
-        table="raw.allocations",
-        columns=["student_id", "classroom"],
-        values=insert_values
-    )
+    # Perform upsert: insert or update classroom_id if student_id exists
+    db.execute_many("""
+        INSERT INTO raw.allocations (participant_id, classroom_id)
+        VALUES (%s, %s)
+        ON CONFLICT (participant_id) DO UPDATE
+        SET classroom_id = EXCLUDED.classroom_id;
+    """, update_values)
 
-    return {"message": "Allocations updated", "total": len(insert_values)}
+    return {"message": "Allocations updated successfully", "total_updated": len(update_values)}, 200
 
 
 # For login and sign up
@@ -231,33 +206,3 @@ def inspect_clustered_graph():
     participants_df = get_all_participants()
 
    
-
-# TODO: Move out of file?
-#create_allocations_table() # Works
-#populate_allocations_table() # Maybe works, maybe duplicates TODO: Fix and reassure
-#classroom_allocation_update()
-
-# Build Graph From DataFrame 
-#alldf = get_all_participants()
-
-#friends_df = get_all_friends()
-#influential_df = get_all_influential()
-#feedback_df = get_all_feedback()
-#more_time_df = get_all_more_time()
-#advice_df = get_all_advice()
-#disrespect_df = get_all_disrespect()
-
-#build_graph_from_dataframe(alldf, friends_df, influential_df, feedback_df, more_time_df, advice_df, disrespect_df)
-
-# Cluster Constraints
-#cluster_constraints()
-
-
-#Analyze graph
-#alldf = get_all_participants()
-#analyze_graph(alldf)
-
-
-
-## Export Clusters
-#export_clusters()

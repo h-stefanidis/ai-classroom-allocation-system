@@ -37,7 +37,7 @@ def run_samsun_model_pipeline():
     json_data = export_clusters(clustered_data)
 
     update_classroom_allocations(json_data) # Update allocations table
-
+    return json_data
     # Step 3: Update db with classroom info 
 
     #print(json_data)

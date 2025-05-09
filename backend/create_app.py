@@ -46,6 +46,11 @@ def createApp(config_class=Config):
     #app.register_blueprint(api_bp, url_prefix='/api')
 
     from app.routes.users import users_bp
+    from app.routes.main import pipeline_bp
+
     app.register_blueprint(users_bp)
+    app.register_blueprint(pipeline_bp)
+
+    
 
     return app

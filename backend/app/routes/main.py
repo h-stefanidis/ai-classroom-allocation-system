@@ -12,7 +12,7 @@ from db.db_usage import (
 
 pipeline_bp = Blueprint("pipeline", __name__)
 
-@pipeline_bp.route("/run_samsun_model_pipeline", methods=['POST'])
+@pipeline_bp.route("/run_samsun_model_pipeline", methods=['GET'])
 def run_samsun_model_pipeline():
     #data = request.get_json()
     #num_classrooms = data.get("num_classrooms")
@@ -37,7 +37,7 @@ def run_samsun_model_pipeline():
     json_data = export_clusters(clustered_data)
 
     update_classroom_allocations(json_data) # Update allocations table
-
+    return json_data
     # Step 3: Update db with classroom info 
 
     #print(json_data)

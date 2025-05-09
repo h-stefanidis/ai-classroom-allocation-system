@@ -18,44 +18,28 @@ function AllocationPage() {
   const { columns, rows } = studentTableData();
   const [classroomCount, setClassroomCount] = useState(3);
   const [allocatedClassrooms, setAllocatedClassrooms] = useState([]);
-  const [loading, setLoading] = useState(false);
 
-  const handleAutoAllocate = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch("/run_samsun_model_pipeline", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ num_clusters: classroomCount }),
-      });
+  const handleAutoAllocate = () => {
+    const generated = Array.from({ length: classroomCount }, (_, i) => {
+      const totalFriendships = Math.floor(Math.random() * 10) + 5;
+      const retained = Math.floor(totalFriendships * (Math.random() * 0.6 + 0.3));
+      const disrespectCount = Math.floor(Math.random() * 5);
 
-      if (!response.ok) {
-        const error = await response.json();
-        console.error("Allocation failed:", error);
-        alert("Failed to optimize allocations.");
-        return;
-      }
-
-      const data = await response.json();
-
-      const formatted = Object.entries(data.Allocations).map(([key, studentIds]) => ({
-        id: parseInt(key.split("_")[1]),
-        students: studentIds.map((id) => ({
-          id: id.toString(),
-          name: `Student ${id}`,
-        })),
-        totalFriendships: Math.floor(Math.random() * 10) + 5,
-        retainedFriendships: Math.floor(Math.random() * 6) + 2,
-        disrespectCount: Math.floor(Math.random() * 3),
+      const students = Array.from({ length: Math.floor(Math.random() * 4) + 3 }, (_, j) => ({
+        id: `${i + 1}-${j + 1}`,
+        name: `Student ${String.fromCharCode(65 + j)}${i + 1}`,
       }));
 
-      setAllocatedClassrooms(formatted);
-    } catch (err) {
-      console.error("Error:", err);
-      alert("Server error during optimization.");
-    } finally {
-      setLoading(false);
-    }
+      return {
+        id: i + 1,
+        students,
+        totalFriendships,
+        retainedFriendships: retained,
+        disrespectCount,
+      };
+    });
+
+    setAllocatedClassrooms(generated);
   };
 
   const handleDeleteClassroom = (id) => {
@@ -136,10 +120,9 @@ function AllocationPage() {
                 color="info"
                 size="large"
                 onClick={handleAutoAllocate}
-                disabled={loading}
                 sx={{ ml: { md: 2 }, mt: { xs: 2, md: 0 } }}
               >
-                {loading ? "Optimising..." : "Optimise Allocations"}
+                Optimise Allocations
               </Button>
             </Grid>
           </Grid>
@@ -214,6 +197,7 @@ function AllocationPage() {
                   </MDBox>
 
                   <MDBox p={2}>
+                    {/* Student List */}
                     <MDBox
                       sx={{
                         maxHeight: 150,
@@ -247,6 +231,7 @@ function AllocationPage() {
                                 >
                                   Delete
                                 </Button>
+
                                 <Button
                                   size="small"
                                   variant="contained"
@@ -273,6 +258,7 @@ function AllocationPage() {
                       )}
                     </MDBox>
 
+                    {/* Metrics */}
                     <MDTypography variant="body2" color="text" mb={1}>
                       Friendships Retained:{" "}
                       <strong>

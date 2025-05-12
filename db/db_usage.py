@@ -210,6 +210,15 @@ def get_relationship_summary_by_run(run_number: str):
         return db.query_df(query, (run_number,))
     
 
+def get_all_allocation_run_numbers():
+    query = """
+        SELECT DISTINCT run_number
+        FROM public.classroom_allocation
+        ORDER BY run_number DESC;
+    """
+    with db:
+        return db.query_df(query)
+
 def inspect_clustered_graph():
     participants_df = get_all_participants()
 

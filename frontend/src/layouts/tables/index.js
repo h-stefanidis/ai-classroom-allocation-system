@@ -10,67 +10,34 @@ import MDTypography from "components/MDTypography";
 
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
-import DataTable from "examples/Tables/DataTable";
-
-import studentTableData from "layouts/tables/data/studentTableData";
 
 function AllocationPage() {
-  const { columns, rows } = studentTableData();
   const [classroomCount, setClassroomCount] = useState(3);
   const [allocatedClassrooms, setAllocatedClassrooms] = useState([]);
 
-  const handleAutoAllocate = () => {
-    const generated = Array.from({ length: classroomCount }, (_, i) => {
-      const totalFriendships = Math.floor(Math.random() * 10) + 5;
-      const retained = Math.floor(totalFriendships * (Math.random() * 0.6 + 0.3));
-      const disrespectCount = Math.floor(Math.random() * 5);
+  const handleFetchAllocation = async () => {
+    try {
+      const response = await fetch("http://127.0.0.1:5000/get_allocation", {
+        method: "GET",
+      });
+      const data = await response.json();
 
-      const students = Array.from({ length: Math.floor(Math.random() * 4) + 3 }, (_, j) => ({
-        id: `${i + 1}-${j + 1}`,
-        name: `Student ${String.fromCharCode(65 + j)}${i + 1}`,
-      }));
+      if (!data || !data.Allocations) return;
 
-      return {
-        id: i + 1,
-        students,
-        totalFriendships,
-        retainedFriendships: retained,
-        disrespectCount,
-      };
-    });
+      const classroomMap = {};
 
-    setAllocatedClassrooms(generated);
-  };
+      // Group students by classroom number dynamically based on the received JSON
+      Object.entries(data.Allocations).forEach(([classroom, students]) => {
+        classroomMap[classroom] = {
+          id: classroom,
+          students: students.map((id) => ({ id })),
+        }; // Ensure semicolon here
+      });
 
-  const handleDeleteClassroom = (id) => {
-    setAllocatedClassrooms((prev) => prev.filter((cls) => cls.id !== id));
-  };
-
-  const handleDeleteStudent = (classroomId, studentId) => {
-    setAllocatedClassrooms((prev) =>
-      prev.map((cls) =>
-        cls.id === classroomId
-          ? { ...cls, students: cls.students.filter((s) => s.id !== studentId) }
-          : cls
-      )
-    );
-  };
-
-  const handleReallocateStudent = (student, fromClassroomId) => {
-    const toClassroom = allocatedClassrooms.find((c) => c.id !== fromClassroomId);
-    if (!toClassroom) return;
-
-    setAllocatedClassrooms((prev) =>
-      prev.map((cls) => {
-        if (cls.id === fromClassroomId) {
-          return { ...cls, students: cls.students.filter((s) => s.id !== student.id) };
-        }
-        if (cls.id === toClassroom.id) {
-          return { ...cls, students: [...cls.students, student] };
-        }
-        return cls;
-      })
-    );
+      setAllocatedClassrooms(Object.values(classroomMap));
+    } catch (error) {
+      console.error("Failed to fetch allocation:", error);
+    }
   };
 
   return (
@@ -119,7 +86,7 @@ function AllocationPage() {
                 variant="contained"
                 color="info"
                 size="large"
-                onClick={handleAutoAllocate}
+                onClick={handleFetchAllocation}
                 sx={{ ml: { md: 2 }, mt: { xs: 2, md: 0 } }}
               >
                 Optimise Allocations
@@ -134,38 +101,6 @@ function AllocationPage() {
             </MDTypography>
           </Grid>
         </Card>
-
-        {/* Static Student Table */}
-        <Grid container spacing={6}>
-          <Grid item xs={12}>
-            <Card>
-              <MDBox
-                mx={2}
-                mt={-3}
-                py={3}
-                px={2}
-                variant="gradient"
-                bgColor="info"
-                borderRadius="lg"
-                coloredShadow="info"
-              >
-                <MDTypography variant="h6" color="white">
-                  Student Allocation Table
-                </MDTypography>
-              </MDBox>
-              <MDBox pt={3} px={2} pb={2}>
-                <DataTable
-                  table={{ columns, rows }}
-                  isSorted
-                  entriesPerPage
-                  showTotalEntries
-                  canSearch
-                  noEndBorder
-                />
-              </MDBox>
-            </Card>
-          </Grid>
-        </Grid>
 
         {/* Dynamic Classrooms */}
         <MDBox mt={4}>
@@ -182,22 +117,9 @@ function AllocationPage() {
                     borderBottom="1px solid #e0e0e0"
                   >
                     <MDTypography variant="h6">{`Classroom ${classroom.id}`}</MDTypography>
-                    <Button
-                      variant="contained"
-                      size="small"
-                      onClick={() => handleDeleteClassroom(classroom.id)}
-                      sx={{
-                        backgroundColor: "#f44336",
-                        color: "#fff",
-                        "&:hover": { backgroundColor: "#d32f2f" },
-                      }}
-                    >
-                      Delete
-                    </Button>
                   </MDBox>
 
                   <MDBox p={2}>
-                    {/* Student List */}
                     <MDBox
                       sx={{
                         maxHeight: 150,
@@ -216,35 +138,8 @@ function AllocationPage() {
                               py={1}
                             >
                               <MDTypography variant="body2" color="text">
-                                {student.name}
+                                <strong>{student.id}</strong> � {student.id}
                               </MDTypography>
-                              <MDBox display="flex" gap={1}>
-                                <Button
-                                  size="small"
-                                  variant="contained"
-                                  sx={{
-                                    backgroundColor: "#f44336",
-                                    color: "#fff",
-                                    "&:hover": { backgroundColor: "#d32f2f" },
-                                  }}
-                                  onClick={() => handleDeleteStudent(classroom.id, student.id)}
-                                >
-                                  Delete
-                                </Button>
-
-                                <Button
-                                  size="small"
-                                  variant="contained"
-                                  sx={{
-                                    backgroundColor: "#ffa726",
-                                    color: "#fff",
-                                    "&:hover": { backgroundColor: "#fb8c00" },
-                                  }}
-                                  onClick={() => handleReallocateStudent(student, classroom.id)}
-                                >
-                                  Reallocate
-                                </Button>
-                              </MDBox>
                             </MDBox>
                             {index < classroom.students.length - 1 && (
                               <hr style={{ border: "0.5px solid #e0e0e0" }} />
@@ -257,20 +152,6 @@ function AllocationPage() {
                         </MDTypography>
                       )}
                     </MDBox>
-
-                    {/* Metrics */}
-                    <MDTypography variant="body2" color="text" mb={1}>
-                      Friendships Retained:{" "}
-                      <strong>
-                        {Math.round(
-                          (classroom.retainedFriendships / classroom.totalFriendships) * 100
-                        )}
-                        % ({classroom.retainedFriendships} of {classroom.totalFriendships})
-                      </strong>
-                    </MDTypography>
-                    <MDTypography variant="body2" color="text">
-                      Disrespect Connections: <strong>{classroom.disrespectCount}</strong>
-                    </MDTypography>
                   </MDBox>
                 </Card>
               </Grid>

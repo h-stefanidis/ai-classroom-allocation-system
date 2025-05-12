@@ -14,8 +14,8 @@ from db.db_usage import (
 
 pipeline_bp = Blueprint("pipeline", __name__)
 
-@pipeline_bp.route("/get_allocation", methods=['GET'])
-def run_samsun_model_pipeline():
+@pipeline_bp.route("/get_allocation", methods=['GET'])  
+def run_samsun_model_pipeline():    
     #data = request.get_json()
     #num_classrooms = data.get("num_classrooms")
 
@@ -43,12 +43,12 @@ def run_samsun_model_pipeline():
     update_classroom_allocations(json_data) # Update allocations table
 
     # Save allocation and fetch student first and last names
-    json_with_student_name = fetch_student_name_from_id(db, json_data)
+    #json_with_student_name = fetch_student_name_from_id(db, json_data)
 
     # Save relationship data
-    compute_preserved_relationships(db, clustered_data, json_with_student_name["Run_Number"])
+    #compute_preserved_relationships(db, clustered_data, json_with_student_name["Run_Number"])
 
-    return jsonify(json_with_student_name)
+    return jsonify(json_data)
     # Step 3: Update db with classroom info 
 
     #print(json_data)

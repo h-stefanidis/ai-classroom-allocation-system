@@ -1,6 +1,7 @@
 from ml.build_graph_from_db import build_graph_from_db
 from ml.cluster_with_gnn_with_constraints import cluster_students_with_gnn
 from ml.export_clusters import export_clusters
+from ml.fetch_student_name_from_id import fetch_student_name_from_id
 from flask import Blueprint, request, jsonify
 from db.db_manager import get_db
 from db.db_usage import (
@@ -12,7 +13,7 @@ from db.db_usage import (
 
 pipeline_bp = Blueprint("pipeline", __name__)
 
-@pipeline_bp.route("/run_samsun_model_pipeline", methods=['GET'])
+@pipeline_bp.route("/get_allocation", methods=['GET'])
 def run_samsun_model_pipeline():
     #data = request.get_json()
     #num_classrooms = data.get("num_classrooms")
@@ -34,10 +35,12 @@ def run_samsun_model_pipeline():
     db=get_db()
     graph = build_graph_from_db(db, 2025)
     clustered_data, graph = cluster_students_with_gnn(graph, 4)
+    print(clustered_data)
     json_data = export_clusters(clustered_data)
 
     update_classroom_allocations(json_data) # Update allocations table
-    return json_data
+    json_with_student_name = fetch_student_name_from_id(db, json_data)
+    return json_with_student_name
     # Step 3: Update db with classroom info 
 
     #print(json_data)
@@ -47,4 +50,4 @@ def run_samsun_model_pipeline():
 
     #return jsonify({"output": final_output})
 
-run_samsun_model_pipeline()
+# run_samsun_model_pipeline()

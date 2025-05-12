@@ -2,6 +2,7 @@ from ml.build_graph_from_db import build_graph_from_db
 from ml.cluster_with_gnn_with_constraints import cluster_students_with_gnn
 from ml.export_clusters import export_clusters
 from ml.fetch_student_name_from_id import fetch_student_name_from_id
+from ml.preserved_relationship import compute_preserved_relationships
 from flask import Blueprint, request, jsonify
 from db.db_manager import get_db
 from db.db_usage import (
@@ -35,12 +36,19 @@ def run_samsun_model_pipeline():
     db=get_db()
     graph = build_graph_from_db(db, 2025)
     clustered_data, graph = cluster_students_with_gnn(graph, 4)
+
     print(clustered_data)
     json_data = export_clusters(clustered_data)
 
     update_classroom_allocations(json_data) # Update allocations table
+
+    # Save allocation and fetch student first and last names
     json_with_student_name = fetch_student_name_from_id(db, json_data)
-    return json_with_student_name
+
+    # Save relationship data
+    compute_preserved_relationships(db, clustered_data, json_with_student_name["Run_Number"])
+
+    return jsonify(json_with_student_name)
     # Step 3: Update db with classroom info 
 
     #print(json_data)

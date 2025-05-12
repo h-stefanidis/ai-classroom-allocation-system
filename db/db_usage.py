@@ -200,6 +200,14 @@ def classroom_update(participant_id: int, classroom_id: int):
             "error": str(e)
         }
 
+def get_relationship_summary_by_run(run_number: str):
+    query = """
+        SELECT group_id, friend, influence, feedback, more_time, advice, disrespect
+        FROM public.preserve_edge
+        WHERE run_number = %s
+    """
+    with db:
+        return db.query_df(query, (run_number,))
     
 
 def inspect_clustered_graph():

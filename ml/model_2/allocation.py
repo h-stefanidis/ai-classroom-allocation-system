@@ -33,7 +33,7 @@ def allocate_students(
     num_students = embeddings.size(0)
 
     logger.info(f"Allocating {num_students} students into {num_allocations} balanced groups.")
-
+    ##todo: Different approach to clustering add if statements to this.
     kmeans = KMeans(n_clusters=num_allocations, random_state=42)
     kmeans.fit(embeddings.cpu().numpy())
     centers = kmeans.cluster_centers_

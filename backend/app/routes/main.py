@@ -36,7 +36,7 @@ def run_samsun_model_pipeline():
     generate_run_number()
     full_json_dict = fetch_student_dict_from_id(db, json_data)
     save_allocations_to_db(db, full_json_dict)
-
+    
     # Save relationship data
     #compute_preserved_relationships(db, clustered_data, json_with_student_name["Run_Number"])
 

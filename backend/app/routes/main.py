@@ -5,6 +5,7 @@ from ml.fetch_student_name_from_id import fetch_student_name_from_id
 from ml.preserved_relationship import compute_preserved_relationships
 from flask import Blueprint, request, jsonify
 from db.db_manager import get_db
+#from db import get_session
 from db.db_usage import (
     update_classroom_allocations,
     drop_allocations_table,
@@ -34,6 +35,8 @@ def run_samsun_model_pipeline():
 
     # Step 2: Build graph and export clusters
     db=get_db()
+    if not db.is_active:
+        db = create_new_session()
     graph = build_graph_from_db(db, 2025)
     clustered_data, graph = cluster_students_with_gnn(graph, 4)
 

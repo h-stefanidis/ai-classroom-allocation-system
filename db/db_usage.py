@@ -5,6 +5,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 from db.db_manager import get_db
 from pathlib import Path
 import uuid
+import jsonify
 
 # Get Database reference
 db = get_db()

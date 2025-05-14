@@ -41,21 +41,13 @@ class GraphSAGE(torch.nn.Module):
         x = self.convs[-1](x, edge_index)
         return x
 
-def generate_embeddings(data: Data, hidden_channels: int = 32, out_channels: int = 16, num_layers: int = 3, dropout: float = 0.5) -> torch.Tensor:
+def generate_embeddings(data: Data, hidden_channels: int = 32, out_channels: int = 16, num_layers: int = 3, dropout: float = 0.5) -> Data:
     """
-    Generates node embeddings using a GraphSAGE model.
-
-    Args:
-        data (Data): PyTorch Geometric Data object.
-        hidden_channels (int): Hidden layer dimension.
-        out_channels (int): Output embedding dimension.
-        num_layers (int): Number of GraphSAGE layers.
-        dropout (float): Dropout probability.
+    Generates node embeddings and attaches them to the Data object.
 
     Returns:
-        torch.Tensor: Final node embeddings [num_nodes, embedding_dim].
+        Data: The input object with embeddings added as `data.embeddings`.
     """
-    # Initialize the GraphSAGE model
     model = GraphSAGE(
         in_channels=data.num_node_features,
         hidden_channels=hidden_channels,
@@ -64,8 +56,9 @@ def generate_embeddings(data: Data, hidden_channels: int = 32, out_channels: int
         dropout=dropout
     )
 
-    # Generate embeddings
     model.eval()
     with torch.no_grad():
         embeddings = model(data.x, data.edge_index)
-    return embeddings
+
+    data.embeddings = embeddings
+    return data

@@ -1,69 +1,76 @@
 from typing import List, Dict
 import torch
 import logging
-from db.database import Database
-from sklearn_extra.cluster import KMeansConstrained
 import math
+from db.database import Database
+from sklearn.cluster import KMeans
+import numpy as np
+from torch_geometric.data import Data
+
 
 # Configure logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 def allocate_students(
-    embeddings: torch.Tensor,
+    data: Data,
     num_allocations: int,
     db: Database
 ) -> List[Dict]:
     """
-    Allocates students into classrooms using size-constrained KMeans clustering
-    on GNN embeddings and inserts the results into the `allocation_students` table.
+    Allocates students into classrooms using clustering on embeddings stored in `data`.
 
     Args:
-        embeddings (torch.Tensor): Node embeddings [num_nodes, embedding_dim].
-        num_allocations (int): Number of clusters (classrooms).
-        db (Database): Database connection object.
+        data (Data): PyG data object with `embeddings` and `student_ids`.
+        num_allocations (int): Number of classrooms.
+        db (Database): Database connection.
 
     Returns:
-        List[Dict]: Allocation results in JSON-like format.
+        List[Dict]: Allocation results.
     """
+    embeddings = data.embeddings
+    student_ids = data.student_ids
     num_students = embeddings.size(0)
-    node_ids = list(range(num_students))
 
-    # Calculate size constraints
-    min_size = math.floor(num_students / num_allocations)
+    logger.info(f"Allocating {num_students} students into {num_allocations} balanced groups.")
+
+    kmeans = KMeans(n_clusters=num_allocations, random_state=42)
+    kmeans.fit(embeddings.cpu().numpy())
+    centers = kmeans.cluster_centers_
+
+    assignments = {i: [] for i in range(num_allocations)}
     max_size = math.ceil(num_students / num_allocations)
 
-    logger.info(f"Allocating {num_students} students into {num_allocations} balanced clusters.")
-    logger.info(f"Min cluster size: {min_size}, Max cluster size: {max_size}")
+    distances = []
+    for idx, emb in enumerate(embeddings.cpu().numpy()):
+        dists = [np.linalg.norm(emb - center) for center in centers]
+        distances.append((idx, dists))
 
-    # Perform constrained KMeans clustering
-    kmeans = KMeansConstrained(
-        n_clusters=num_allocations,
-        size_min=min_size,
-        size_max=max_size,
-        random_state=42
-    )
-    cluster_labels = kmeans.fit_predict(embeddings.cpu().numpy())
+    distances.sort(key=lambda x: min(x[1]))
 
-    # Group students by cluster
-    allocations = [{"allocation_id": i, "students": []} for i in range(num_allocations)]
-    for node_id, cluster_id in zip(node_ids, cluster_labels):
-        allocations[cluster_id]["students"].append(node_id)
+    for idx, dists in distances:
+        sorted_clusters = sorted(enumerate(dists), key=lambda x: x[1])
+        for cluster_id, _ in sorted_clusters:
+            if len(assignments[cluster_id]) < max_size:
+                assignments[cluster_id].append(student_ids[idx])
+                break
 
-    # Insert allocations into the database
+    data_to_insert = [(cluster_id, student_id) for cluster_id, student_list in assignments.items() for student_id in student_list]
+
     insert_query = """
         INSERT INTO allocation_students (allocation_id, student_id)
         VALUES (%s, %s)
     """
-    data_to_insert = [(cluster_id, student_id) for cluster_id, student_id in zip(cluster_labels, node_ids)]
+
     try:
         db.execute_many(insert_query, data_to_insert)
         logger.info(f"Inserted {len(data_to_insert)} student allocations into the database.")
     except Exception as e:
-        logger.error(f"Failed to insert student allocations: {e}")
+        logger.error(f"Failed to insert allocations: {e}")
 
-    # Log cluster sizes
-    for allocation in allocations:
-        logger.info(f"Cluster {allocation['allocation_id']} has {len(allocation['students'])} students.")
+    result = [{"allocation_id": cluster_id, "students": student_list}
+              for cluster_id, student_list in assignments.items()]
 
-    return allocations
+    for r in result:
+        logger.info(f"Class {r['allocation_id']} → {len(r['students'])} students")
+    return result

@@ -6,15 +6,15 @@ from db.db_manager import get_db
 
 if __name__ == "__main__":
     with get_db() as db:
-        # Step 1: Construct the graph
+        # Step 1: Construct and preprocess graph
         social_network_graph = construct_graph(db, cohort='2025')
-        data = preprocessing(social_network_graph)
+        pyg_data = preprocessing(social_network_graph)
 
-        # Step 2: Generate embeddings
-        embeddings = generate_embeddings(data)
+        # Step 2: Generate and attach embeddings
+        pyg_data = generate_embeddings(pyg_data)
 
-        # Step 3: Allocate students into classrooms
-        allocations = allocate_students(embeddings, num_allocations=3, db=db)
+        # Step 3: Allocate students
+        allocations = allocate_students(pyg_data, num_allocations=3, db=db)
 
         # Step 4: Print allocations
         print(allocations)

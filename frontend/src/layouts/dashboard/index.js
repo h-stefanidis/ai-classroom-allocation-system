@@ -1,163 +1,121 @@
-/**
-=========================================================
-* Material Dashboard 2 React - v2.2.0
-=========================================================
-
-* Product Page: https://www.creative-tim.com/product/material-dashboard-react
-* Copyright 2023 Creative Tim (https://www.creative-tim.com)
-
-Coded by www.creative-tim.com
-
- =========================================================
-
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-*/
-
-// @mui material components
 import Grid from "@mui/material/Grid";
+import Card from "@mui/material/Card";
 
-// Material Dashboard 2 React components
-import MDBox from "components/MDBox";
-
-// Material Dashboard 2 React example components
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
-import Footer from "examples/Footer";
-import ReportsBarChart from "examples/Charts/BarCharts/ReportsBarChart";
-import ReportsLineChart from "examples/Charts/LineCharts/ReportsLineChart";
+
+import MDBox from "components/MDBox";
+import MDTypography from "components/MDTypography";
 import ComplexStatisticsCard from "examples/Cards/StatisticsCards/ComplexStatisticsCard";
+import VisualizationSection from "components/VisualizationSection";
 
-// Data
-import reportsBarChartData from "layouts/dashboard/data/reportsBarChartData";
-import reportsLineChartData from "layouts/dashboard/data/reportsLineChartData";
+// Charts
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
-// Dashboard components
-import Projects from "layouts/dashboard/components/Projects";
-import OrdersOverview from "layouts/dashboard/components/OrdersOverview";
+// Dummy chart data (overview trend)
+const chartData = [
+  { name: "Week 1", students: 40 },
+  { name: "Week 2", students: 45 },
+  { name: "Week 3", students: 50 },
+  { name: "Week 4", students: 47 },
+  { name: "Week 5", students: 53 },
+];
 
-function Dashboard() {
-  const { sales, tasks } = reportsLineChartData;
-
+export default function Dashboard() {
   return (
     <DashboardLayout>
       <DashboardNavbar />
       <MDBox py={3}>
+        {/* 🔹 Summary Cards */}
         <Grid container spacing={3}>
-          <Grid item xs={12} md={6} lg={3}>
-            <MDBox mb={1.5}>
-              <ComplexStatisticsCard
-                color="dark"
-                icon="weekend"
-                title="Bookings"
-                count={281}
-                percentage={{
-                  color: "success",
-                  amount: "+55%",
-                  label: "than lask week",
-                }}
-              />
-            </MDBox>
+          <Grid item xs={12} md={6} lg={6}>
+            <ComplexStatisticsCard
+              icon="track_changes"
+              title="Allocations Processed"
+              count="12"
+              percentage={{ color: "success", label: "last 24 hours" }}
+            />
           </Grid>
-          <Grid item xs={12} md={6} lg={3}>
-            <MDBox mb={1.5}>
-              <ComplexStatisticsCard
-                icon="leaderboard"
-                title="Today's Users"
-                count="2,300"
-                percentage={{
-                  color: "success",
-                  amount: "+3%",
-                  label: "than last month",
-                }}
-              />
-            </MDBox>
-          </Grid>
-          <Grid item xs={12} md={6} lg={3}>
-            <MDBox mb={1.5}>
-              <ComplexStatisticsCard
-                color="success"
-                icon="store"
-                title="Revenue"
-                count="34k"
-                percentage={{
-                  color: "success",
-                  amount: "+1%",
-                  label: "than yesterday",
-                }}
-              />
-            </MDBox>
-          </Grid>
-          <Grid item xs={12} md={6} lg={3}>
-            <MDBox mb={1.5}>
-              <ComplexStatisticsCard
-                color="primary"
-                icon="person_add"
-                title="Followers"
-                count="+91"
-                percentage={{
-                  color: "success",
-                  amount: "",
-                  label: "Just updated",
-                }}
-              />
-            </MDBox>
+          <Grid item xs={12} md={6} lg={6}>
+            <ComplexStatisticsCard
+              icon="hub"
+              title="Visualization Active"
+              count="5 Networks"
+              percentage={{ color: "info", label: "updated live" }}
+            />
           </Grid>
         </Grid>
-        <MDBox mt={4.5}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6} lg={4}>
-              <MDBox mb={3}>
-                <ReportsBarChart
-                  color="info"
-                  title="website views"
-                  description="Last Campaign Performance"
-                  date="campaign sent 2 days ago"
-                  chart={reportsBarChartData}
-                />
-              </MDBox>
-            </Grid>
-            <Grid item xs={12} md={6} lg={4}>
-              <MDBox mb={3}>
-                <ReportsLineChart
-                  color="success"
-                  title="daily sales"
-                  description={
-                    <>
-                      (<strong>+15%</strong>) increase in today sales.
-                    </>
-                  }
-                  date="updated 4 min ago"
-                  chart={sales}
-                />
-              </MDBox>
-            </Grid>
-            <Grid item xs={12} md={6} lg={4}>
-              <MDBox mb={3}>
-                <ReportsLineChart
-                  color="dark"
-                  title="completed tasks"
-                  description="Last Campaign Performance"
-                  date="just updated"
-                  chart={tasks}
-                />
-              </MDBox>
-            </Grid>
-          </Grid>
+
+        {/* 📈 Overview Line Chart */}
+        <MDBox mt={4}>
+          <Card sx={{ p: 3 }}>
+            <MDTypography variant="h5" fontWeight="medium" gutterBottom>
+              Weekly Student Allocation Trend
+            </MDTypography>
+            <MDBox mt={3} height={300}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line
+                    type="monotone"
+                    dataKey="students"
+                    stroke="#1976d2"
+                    strokeWidth={2}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </MDBox>
+          </Card>
         </MDBox>
-        <MDBox>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6} lg={8}>
-              <Projects />
-            </Grid>
-            <Grid item xs={12} md={6} lg={4}>
-              <OrdersOverview />
-            </Grid>
-          </Grid>
+
+        {/* 🧠 Allocation Visualization */}
+        <MDBox mt={4}>
+          <Card sx={{ p: 3 }}>
+            <MDTypography variant="h5" fontWeight="medium" gutterBottom>
+              Classroom Allocation Network
+            </MDTypography>
+            <MDBox
+              sx={{
+                overflowX: "auto",
+                maxWidth: "100%",
+                border: "1px solid #e0e0e0",
+                borderRadius: "8px",
+                p: 2,
+                mt: 2,
+              }}
+            >
+              <VisualizationSection />
+            </MDBox>
+          </Card>
+        </MDBox>
+
+        {/* 📘 Justification Section */}
+        <MDBox mt={4}>
+          <Card sx={{ p: 3 }}>
+            <MDTypography variant="h5" fontWeight="medium" gutterBottom>
+              AI Allocation Justification
+            </MDTypography>
+            <MDTypography variant="body2" color="text">
+              This visualization shows optimized classroom groupings based on academic performance,
+              social bonding, and wellbeing metrics. Students were clustered to improve retention
+              and reduce negative interaction patterns. Adjustments are ongoing as new data is
+              processed.
+            </MDTypography>
+          </Card>
         </MDBox>
       </MDBox>
-      <Footer />
     </DashboardLayout>
   );
 }
-
-export default Dashboard;

@@ -9,7 +9,7 @@ __pycache__/
 *.log
 .env
 .vscode/
-
+.vs/
 
 # Python
 venv/
@@ -17,6 +17,7 @@ venv/
 env/
 *.egg-info/
 classforge
+classforge_env
 
 # React
 node_modules/

@@ -5,6 +5,7 @@ from sklearn.cluster import KMeans
 from ortools.sat.python import cp_model
 from torch_geometric.data import Data
 from torch_geometric.nn import SAGEConv, GATConv, RGCNConv
+from .preserved_relationship import compute_preserved_relationships
  
 class ImprovedClassForgeGNN(torch.nn.Module):
     def __init__(self, in_channels, hidden_channels, embedding_size, num_relations):
@@ -130,7 +131,7 @@ def cluster_students_with_gnn(graph, num_clusters):
         )
         if hasattr(graph, "participant_ids"):
             clustered_data.participant_ids = graph.participant_ids
-
+        print("---------------")
         return clustered_data, graph
 
     raise RuntimeError("Clustering failed: No feasible solution found.")

@@ -5,60 +5,43 @@ from ml.fetch_student_name_from_id import fetch_student_name_from_id
 from ml.preserved_relationship import compute_preserved_relationships
 from flask import Blueprint, request, jsonify
 from db.db_manager import get_db
+import uuid
 #from db import get_session
 from db.db_usage import (
     update_classroom_allocations,
     drop_allocations_table,
     create_allocations_table,
     populate_allocations_table,
+    save_allocations_to_db,
+    generate_run_number,
+    fetch_student_dict_from_id
 )
 
 pipeline_bp = Blueprint("pipeline", __name__)
 
 @pipeline_bp.route("/get_allocation", methods=['GET'])  
 def run_samsun_model_pipeline():    
-    #data = request.get_json()
-    #num_classrooms = data.get("num_classrooms")
-
-    #if num_classrooms is None:
-    #    return jsonify({"error": "num_classrooms not provided"}), 400
-
-    # Step 1: Preprocess
-    #df = preprocess_data()
-
-    # Just incase, to redo the allocations table as 0 classroom alloc
-
-    #drop_allocations_table()
-    #create_allocations_table()
-    #populate_allocations_table()
-
-
-    # Step 2: Build graph and export clusters
     db=get_db()
-    if not db.is_active:
-        db = create_new_session()
+    #if not db.is_active:
+    #    db = create_new_session()
+
+    classroom_count = int(request.args.get('classroom_count', 4))
     graph = build_graph_from_db(db, 2025)
-    clustered_data, graph = cluster_students_with_gnn(graph, 4)
+    clustered_data, graph = cluster_students_with_gnn(graph, classroom_count)
+
 
     print(clustered_data)
     json_data = export_clusters(clustered_data)
 
-    update_classroom_allocations(json_data) # Update allocations table
-
-    # Save allocation and fetch student first and last names
-    #json_with_student_name = fetch_student_name_from_id(db, json_data)
+    generate_run_number()
+    full_json_dict = fetch_student_dict_from_id(db, json_data)
+    save_allocations_to_db(db, full_json_dict)
 
     # Save relationship data
     #compute_preserved_relationships(db, clustered_data, json_with_student_name["Run_Number"])
 
-    return jsonify(json_data)
+    return jsonify(full_json_dict)
     # Step 3: Update db with classroom info 
-
-    #print(json_data)
-
-    ## Step 4: Post-process
-    #final_output = postprocess_results(results, df)
-
     #return jsonify({"output": final_output})
 
 # run_samsun_model_pipeline()

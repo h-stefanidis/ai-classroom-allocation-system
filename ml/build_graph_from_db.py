@@ -7,6 +7,7 @@ from torch_geometric.data import Data
 from sqlalchemy import create_engine
 # from db_config import load_db_url
 from pathlib import Path
+import uuid
 # from db.db_manager import get_db
 
 

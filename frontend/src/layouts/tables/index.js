@@ -17,21 +17,24 @@ function AllocationPage() {
 
   const handleFetchAllocation = async () => {
     try {
-      const response = await fetch("http://127.0.0.1:5000/get_allocation", {
-        method: "GET",
-      });
+      const response = await fetch(
+        `http://127.0.0.1:5000/get_allocation?classroom_count=${classroomCount}`,
+        {
+          method: "GET",
+        }
+      );
       const data = await response.json();
 
       if (!data || !data.Allocations) return;
 
       const classroomMap = {};
 
-      // Group students by classroom number dynamically based on the received JSON
+      // Store full student objects
       Object.entries(data.Allocations).forEach(([classroom, students]) => {
         classroomMap[classroom] = {
           id: classroom,
-          students: students.map((id) => ({ id })),
-        }; // Ensure semicolon here
+          students: students,
+        };
       });
 
       setAllocatedClassrooms(Object.values(classroomMap));
@@ -116,7 +119,7 @@ function AllocationPage() {
                     py={2}
                     borderBottom="1px solid #e0e0e0"
                   >
-                    <MDTypography variant="h6">{`Classroom ${classroom.id}`}</MDTypography>
+                    <MDTypography variant="h6">{`Classroom ${classroom.id} (${classroom.students.length} students)`}</MDTypography>
                   </MDBox>
 
                   <MDBox p={2}>
@@ -130,7 +133,7 @@ function AllocationPage() {
                     >
                       {classroom.students.length > 0 ? (
                         classroom.students.map((student, index) => (
-                          <MDBox key={student.id}>
+                          <MDBox key={student.participant_id}>
                             <MDBox
                               display="flex"
                               justifyContent="space-between"
@@ -138,7 +141,9 @@ function AllocationPage() {
                               py={1}
                             >
                               <MDTypography variant="body2" color="text">
-                                <strong>{student.id}</strong> ï¿½ {student.id}
+                                <strong>{student.participant_id}</strong>
+                                {" – "}
+                                {student.first_name} {student.last_name}
                               </MDTypography>
                             </MDBox>
                             {index < classroom.students.length - 1 && (

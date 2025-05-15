@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 import uuid
+from db.db_usage import save_allocations_to_db
 
 def generate_run_number():
     return str(uuid.uuid4()) 
@@ -48,22 +49,3 @@ def fetch_student_name_from_id(db, json_data):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
-def save_allocations_to_db(db, allocation_data: dict):
-    run_number = generate_run_number()
-    rows_to_insert = []
-
-    for classroom_name, student_ids in allocation_data["Allocations"].items():
-        for student_id in student_ids:
-            rows_to_insert.append((run_number, classroom_name, student_id))
-
-    query = """
-    INSERT INTO public.classroom_allocation (run_number, classroom_id, participant_id)
-    VALUES (%s, %s, %s)
-    """
-
-    with db:
-        db.execute_many(query, rows_to_insert)
-
-    print(f"Inserted {len(rows_to_insert)} rows for run {run_number}")
-    return run_number

@@ -1,18 +1,3 @@
-/**
-=========================================================
-* Material Dashboard 2 React - v2.2.0
-=========================================================
-
-* Product Page: https://www.creative-tim.com/product/material-dashboard-react
-* Copyright 2023 Creative Tim (https://www.creative-tim.com)
-
-Coded by www.creative-tim.com
-
- =========================================================
-
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-*/
-
 // react-router-dom components
 import { Link } from "react-router-dom";
 
@@ -39,22 +24,25 @@ function Breadcrumbs({ icon, title, route, light }) {
           },
         }}
       >
+        {/* ✅ Home icon with larger font size */}
         <Link to="/">
           <MDTypography
             component="span"
-            variant="body2"
+            fontSize="1.5rem" // ⬅️ Bigger icon size
             color={light ? "white" : "dark"}
             opacity={light ? 0.8 : 0.5}
             sx={{ lineHeight: 0 }}
           >
-            <Icon>{icon}</Icon>
+            <Icon sx={{ fontSize: "1.5rem", verticalAlign: "middle" }}>{icon}</Icon>
           </MDTypography>
         </Link>
+
+        {/* ✅ Breadcrumb path links with larger font */}
         {routes.map((el) => (
           <Link to={`/${el}`} key={el}>
             <MDTypography
               component="span"
-              variant="button"
+              fontSize="1rem" // ⬅️ Increased from default
               fontWeight="regular"
               textTransform="capitalize"
               color={light ? "white" : "dark"}
@@ -65,8 +53,10 @@ function Breadcrumbs({ icon, title, route, light }) {
             </MDTypography>
           </Link>
         ))}
+
+        {/* ✅ Final breadcrumb title with larger font */}
         <MDTypography
-          variant="button"
+          fontSize="1rem" // ⬅️ Increased here too
           fontWeight="regular"
           textTransform="capitalize"
           color={light ? "white" : "dark"}
@@ -75,6 +65,8 @@ function Breadcrumbs({ icon, title, route, light }) {
           {title.replace("-", " ")}
         </MDTypography>
       </MuiBreadcrumbs>
+
+      {/* ✅ Page heading remains slightly larger (as `h6`) */}
       <MDTypography
         fontWeight="bold"
         textTransform="capitalize"
@@ -88,12 +80,12 @@ function Breadcrumbs({ icon, title, route, light }) {
   );
 }
 
-// Setting default values for the props of Breadcrumbs
+// Default props
 Breadcrumbs.defaultProps = {
   light: false,
 };
 
-// Typechecking props for the Breadcrumbs
+// Prop types
 Breadcrumbs.propTypes = {
   icon: PropTypes.node.isRequired,
   title: PropTypes.string.isRequired,

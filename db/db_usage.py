@@ -5,8 +5,12 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 from db.db_manager import get_db
 from pathlib import Path
 import uuid
+<<<<<<< HEAD
 from sqlalchemy import text
 
+=======
+from flask import jsonify
+>>>>>>> f50ae4a424232c8476de2cecd9cd2801bfc3d1f5
 
 # Get Database reference
 db = get_db()

@@ -4,7 +4,7 @@ import Insights from "layouts/insights";
 import AllocationPage from "layouts/tables";
 import VisualizationPage from "pages/VisualizationPage";
 import UploadDataPage from "pages/UploadDataPage";
-import OnboardingPage from "pages/OnboardingPage";
+import OnboardingPage from "layouts/onboarding";
 import PreferencesPage from "pages/PreferencesPage";
 import FeedbackPage from "pages/FeedbackPage";
 import AdminToolsPage from "pages/AdminToolsPage";
@@ -17,6 +17,7 @@ import Comparison from "layouts/comparison";
 import Icon from "@mui/material/Icon";
 
 const routes = [
+  // ✅ Sidebar routes (visible)
   {
     type: "collapse",
     name: "Dashboard",
@@ -67,14 +68,6 @@ const routes = [
   },
   {
     type: "collapse",
-    name: "Onboarding",
-    key: "onboarding",
-    icon: <Icon fontSize="small">tour</Icon>,
-    route: "/onboarding",
-    component: <OnboardingPage />,
-  },
-  {
-    type: "collapse",
     name: "Preferences",
     key: "preferences",
     icon: <Icon fontSize="small">tune</Icon>,
@@ -104,6 +97,26 @@ const routes = [
     icon: <Icon fontSize="small">person</Icon>,
     route: "/profile",
     component: <Profile />,
+  },
+
+  // 🔒 Hidden routes (auth & onboarding, NOT shown in sidebar)
+  {
+    name: "Onboarding",
+    key: "onboarding",
+    route: "/onboarding",
+    component: <OnboardingPage />,
+  },
+  {
+    name: "Sign In",
+    key: "sign-in",
+    route: "/authentication/sign-in",
+    component: <SignIn />,
+  },
+  {
+    name: "Sign Up",
+    key: "sign-up",
+    route: "/authentication/sign-up",
+    component: <SignUp />,
   },
 ];
 

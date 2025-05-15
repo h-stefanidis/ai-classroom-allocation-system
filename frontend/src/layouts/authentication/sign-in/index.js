@@ -42,8 +42,11 @@ function Basic() {
       const data = await response.json();
       console.log("✅ Auth Success:", data);
 
-      // Redirect to dashboard
-      navigate("/dashboard");
+      // ✅ Store mock auth state
+      localStorage.setItem("isAuthenticated", "true");
+
+      // ✅ Redirect
+      navigate("/onboarding");
     } catch (error) {
       console.error("❌ Auth Error:", error);
       setErrorOpen(true);

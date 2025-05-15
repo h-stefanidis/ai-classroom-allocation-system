@@ -7,62 +7,66 @@ from torch_geometric.data import Data
 from sqlalchemy import create_engine
 # from db_config import load_db_url
 from pathlib import Path
+import uuid
 # from db.db_manager import get_db
 
-EDGE_TYPE = {
-    "friend": 0,
-    "influence": 1,
-    "feedback": 2,
-    "more_time": 3,
-    "advice": 4,
-    "disrespect": 5
-}
 
-network_tables = {
-    "friend": "raw.friends",
-    "influence": "raw.influential",
-    "feedback": "raw.feedback",
-    "more_time": "raw.more_time",
-    "advice": "raw.advice",
-    "disrespect": "raw.disrespect"
-}
 
-def load_db_url(config_path="database/config.json"):
-    with open(config_path, "r") as f:
-        config = json.load(f)["database"]
-    user = config["user"]
-    password = config["password"]
-    host = config["host"]
-    port = config["port"]
-    dbname = config["dbname"]
-    return f"postgresql://{user}:{password}@{host}:{port}/{dbname}"
+#def load_db_url(config_path="database/config.json"):
+#    with open(config_path, "r") as f:
+#        config = json.load(f)["database"]
+#    user = config["user"]
+#    password = config["password"]
+#    host = config["host"]
+#    port = config["port"]
+#    dbname = config["dbname"]
+#    return f"postgresql://{user}:{password}@{host}:{port}/{dbname}"
 
-def build_graph_from_db(db_url):
-    engine = create_engine(db_url)
+def build_graph_from_db(db,cohort=None):
+    #engine = create_engine(db_url)
 
-    # === Load participants ===
-    # include cohort filtering later
-    query = """
-        SELECT 
-            participant_id,
-            perc_effort,
-            attendance,
-            perc_academic,
-            complete_years,
-            house
+    ## === Load participants ===
+    ## include cohort filtering later
+    #query = """
+    #    SELECT 
+    #        participant_id,
+    #        perc_effort,
+    #        attendance,
+    #        perc_academic,
+    #        complete_years,
+    #        house
+    #    FROM raw.participants
+    #    WHERE participant_id IS NOT NULL
+    #"""
+    #participants = pd.read_sql(query, engine)
+    #participants["participant_id"] = participants["participant_id"].astype(int)
+
+     #Fetch participant data of respective cohort if any for node features
+
+    EDGE_TYPE = {
+        "friend": 0,
+        "influence": 1,
+        "feedback": 2,
+        "more_time": 3,
+        "advice": 4,
+        "disrespect": 5
+    }
+
+    network_tables = {
+        "friend": "raw.friends",
+        "influence": "raw.influential",
+        "feedback": "raw.feedback",
+        "more_time": "raw.more_time",
+        "advice": "raw.advice",
+        "disrespect": "raw.disrespect"
+    }
+
+    participants_query = """
+        SELECT participant_id, perc_academic, perc_effort, attendance, complete_years, cohort 
         FROM raw.participants
-        WHERE participant_id IS NOT NULL
-    """
-    participants = pd.read_sql(query, engine)
+        """ + (f" WHERE cohort = '{cohort}'" if cohort else "")
+    participants = db.query_df(participants_query)
     participants["participant_id"] = participants["participant_id"].astype(int)
-
-    # Fetch participant data of respective cohort if any for node features
-    # participants_query = """
-    # SELECT participant_id, perc_academic, perc_effort, attendance, cohort
-    # FROM raw.participants
-    # """ + (f" WHERE cohort = '{cohort}'" if cohort else "")
-    # participants = db.query_df(participants_query)
-    # participants["participant_id"] = participants["participant_id"].astype(int)
 
     id_to_index = {pid: idx for idx, pid in enumerate(participants["participant_id"])}
     num_nodes = len(participants)
@@ -95,7 +99,9 @@ def build_graph_from_db(db_url):
             edge_type.append(EDGE_TYPE[relation])
 
     for relation, table in network_tables.items():
-        df = pd.read_sql(f"SELECT source, target FROM {table}", engine)
+        #df = pd.read_sql(f"SELECT source, target FROM {table}", engine)
+        relation_query = f"SELECT source, target FROM {table}"
+        df = db.query_df(relation_query)
         add_edges(df, relation)
 
     if edge_index:
@@ -106,20 +112,20 @@ def build_graph_from_db(db_url):
         edge_type = torch.empty((0,), dtype=torch.long)
 
     y = torch.randint(0, 3, (num_nodes,), dtype=torch.long)
-    data = Data(x=x, edge_index=edge_index, edge_type=edge_type, y=y)
-    data.participant_ids = torch.tensor(participants["participant_id"].values, dtype=torch.long)
+    graph = Data(x=x, edge_index=edge_index, edge_type=edge_type, y=y)
+    graph.participant_ids = torch.tensor(participants["participant_id"].values, dtype=torch.long)
 
-    torch.save(data, "data/student_graph.pt")
-    print("Graph saved to data/student_graph.pt")
+    #torch.save(data, "data/student_graph.pt")
+    #print("Graph saved to data/student_graph.pt")
     print(f"- Nodes: {x.shape[0]}, Features: {x.shape[1]}")
     print(f"- Edges: {edge_index.shape[1]}, Edge types: {len(set(edge_type.tolist())) if len(edge_type) > 0 else 0}")
 
-    return data
+    return graph
 
-if __name__ == "__main__":
-    # with get_db() as db:
-    #     initial_graph = build_graph_from_db(db, '2025')
+#if __name__ == "__main__":
+#    # with get_db() as db:
+#    #     initial_graph = build_graph_from_db(db, '2025')
 
-    db_url = load_db_url()
-    initial_graph = build_graph_from_db(db_url)
+#    db_url = load_db_url()
+#    initial_graph = build_graph_from_db(db_url)
 

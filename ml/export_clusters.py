@@ -1,55 +1,38 @@
-import torch
 import pandas as pd
 from collections import defaultdict
-import json
 
-# Load clustered graph
-data = torch.load("data/student_graph_clustered.pt")
+def export_clusters(clustered_data):
+    """
+    Exports classroom allocations from clustered data.
+    
+    Args:
+        clustered_data (torch_geometric.data.Data): Clustered graph data with participant IDs and cluster labels.
+    
+    Returns:
+        dict: JSON object containing student allocations.
+    """
+    # Load Participant-IDs
+    if hasattr(clustered_data, "participant_ids"):
+        participant_ids = clustered_data.participant_ids.tolist()
+    else:
+        raise ValueError("Participant IDs are missing in the clustered data.")
 
-# Load Participant-IDs
-if hasattr(data, "participant_ids"):
-    participant_ids = data.participant_ids.tolist()
-else:
-    participants = pd.read_excel("SchoolData/Student Survey - Jan.xlsx", sheet_name="participants")
-    participants = participants.dropna(subset=["Participant-ID"]).reset_index(drop=True)
-    participant_ids = participants["Participant-ID"].astype(int).tolist()
+    # Cluster labels
+    cluster_labels = clustered_data.y.tolist()
 
-# Cluster labels
-cluster_labels = data.y.tolist()
+    # Basic counts
+    num_students = len(participant_ids)
+    num_classrooms = len(set(cluster_labels))
 
-# Basic counts
-num_students = len(participant_ids)
-num_classrooms = len(set(cluster_labels))
+    # Create grouped JSON allocation
+    allocations_by_class = defaultdict(list)
+    for pid, label in zip(participant_ids, cluster_labels):
+        allocations_by_class[label+1].append(pid)
 
-# -----------------------------
-# Save flat CSV allocation
-# -----------------------------
-csv_df = pd.DataFrame({
-    "Participant-ID": participant_ids,
-    "Classroom": cluster_labels
-})
+    json_data = {
+        "Total_Students": num_students,
+        "Total_Classrooms": num_classrooms,
+        "Allocations": allocations_by_class
+    }
 
-csv_path = "data/classroom_allocations.csv"
-csv_df.to_csv(csv_path, index=False)
-print(f"✅ CSV allocation list saved to: {csv_path}")
-
-# -----------------------------
-# Save grouped JSON allocation
-# -----------------------------
-allocations_by_class = defaultdict(list)
-for pid, label in zip(participant_ids, cluster_labels):
-    allocations_by_class[f"Classroom_{label}"].append(pid)
-
-json_data = {
-    "Total_Students": num_students,
-    "Total_Classrooms": num_classrooms,
-    "Allocations": allocations_by_class
-}
-
-json_path = "data/classroom_allocations.json"
-with open(json_path, "w") as f:
-    json.dump(json_data, f, indent=2)
-
-print(f"✅ JSON allocation (grouped) saved to: {json_path}")
-print(f"👥 Total Students: {num_students}")
-print(f"🏫 Total Classrooms: {num_classrooms}")
+    return json_data

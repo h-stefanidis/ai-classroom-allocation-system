@@ -114,3 +114,15 @@ class Database:
             self.connection.close()
             self.connection = None
             logger.info("Database connection closed.")
+
+    def fetch_one(self, query, data=None):
+        if not self.connection:
+            logger.warning("No database connection.")
+            return None
+        try:
+            with self.connection.cursor() as cursor:
+                cursor.execute(query, data)
+                return cursor.fetchone()
+        except Error as e:
+            logger.error(f"Fetch one failed: {e}")
+            return None

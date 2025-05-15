@@ -1,5 +1,5 @@
 from db.db_usage import login_user, register_user
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify,Blueprint
 
 
 users_bp = Blueprint("users", __name__)
@@ -15,7 +15,9 @@ def login():
 
 @users_bp.route("/signup", methods=["POST"])
 def signup():
+    print("hi")
     data = request.json
     result = register_user(data["email"], data["password"], data["username"], data["role"])
+
     status_code = 200 if result["success"] else 400
     return jsonify(result), status_code

@@ -26,7 +26,7 @@ function AllocationPage() {
     setLoading(true);
     try {
       const url =
-        selectedModel === "Ensemble"
+        selectedModel === "GraphSAGE"
           ? `http://127.0.0.1:5000/run_model2?classroomCount=${classroomCount}`
           : `http://127.0.0.1:5000/get_allocation?classroom_count=${classroomCount}`;
 
@@ -107,7 +107,7 @@ function AllocationPage() {
                 InputProps={{ sx: { height: 46, fontSize: "1rem" } }}
                 InputLabelProps={{ sx: { fontSize: "1rem" } }}
               >
-                {["GraphSAGE", "Ensemble"].map((model) => (
+                {["Ensemble", "GraphSAGE"].map((model) => (
                   <MenuItem key={model} value={model}>
                     {model}
                   </MenuItem>

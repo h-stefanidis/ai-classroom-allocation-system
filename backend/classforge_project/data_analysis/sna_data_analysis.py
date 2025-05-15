@@ -62,8 +62,7 @@ def generate_sna_summary_per_classroom(run_number, db):
     # Load relevant data for the run
     edge_df = db.query_df("SELECT * FROM public.edge_relationship WHERE run_number = %s", (run_number,))
     alloc_df = db.query_df("SELECT * FROM public.classroom_allocation WHERE run_number = %s", (run_number,))
-    print("------------", edge_df)
-    print('-----------',alloc_df)
+
     if edge_df.empty or alloc_df.empty:
         return {"error": f"No data found for run_number {run_number}"}, 404
 

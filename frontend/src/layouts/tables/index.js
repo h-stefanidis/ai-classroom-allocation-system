@@ -13,23 +13,22 @@ import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 
 function AllocationPage() {
   const [classroomCount, setClassroomCount] = useState(3);
+  const [selectedModel, setSelectedModel] = useState("GraphSAGE");
   const [allocatedClassrooms, setAllocatedClassrooms] = useState([]);
 
   const handleFetchAllocation = async () => {
     try {
-      const response = await fetch(
-        `http://127.0.0.1:5000/get_allocation?classroom_count=${classroomCount}`,
-        {
-          method: "GET",
-        }
-      );
+      const url =
+        selectedModel === "Ensemble"
+          ? `http://127.0.0.1:5000/run_model2?classroomCount=${classroomCount}`
+          : `http://127.0.0.1:5000/get_allocation?classroom_count=${classroomCount}`;
+
+      const response = await fetch(url, { method: "GET" });
       const data = await response.json();
 
       if (!data || !data.Allocations) return;
 
       const classroomMap = {};
-
-      // Store full student objects
       Object.entries(data.Allocations).forEach(([classroom, students]) => {
         classroomMap[classroom] = {
           id: classroom,
@@ -58,13 +57,14 @@ function AllocationPage() {
           </MDTypography>
         </MDBox>
 
-        {/* Control Card */}
+        {/* Configuration Card */}
         <Card sx={{ px: 3, py: 4, mb: 8 }}>
           <MDTypography variant="h6" mb={2}>
             Configuration
           </MDTypography>
 
           <Grid container spacing={2} alignItems="center" mb={2}>
+            {/* Classroom Count Dropdown */}
             <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
@@ -84,6 +84,27 @@ function AllocationPage() {
               </TextField>
             </Grid>
 
+            {/* Model Selection Dropdown */}
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                select
+                label="Select Model"
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value)}
+                size="medium"
+                InputProps={{ sx: { height: 46, fontSize: "1rem" } }}
+                InputLabelProps={{ sx: { fontSize: "1rem" } }}
+              >
+                {["GraphSAGE", "Ensemble"].map((model) => (
+                  <MenuItem key={model} value={model}>
+                    {model}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+
+            {/* Optimise Button */}
             <Grid item xs={12} md="auto">
               <Button
                 variant="contained"
@@ -97,15 +118,17 @@ function AllocationPage() {
             </Grid>
           </Grid>
 
+          {/* Description */}
           <Grid item xs={12}>
             <MDTypography variant="caption" color="text">
-              Allocates students into {classroomCount} classrooms based on academic, social, and
-              wellbeing metrics.
+              Allocates students into {classroomCount} classrooms using the{" "}
+              <strong>{selectedModel}</strong> model based on academic, social, and wellbeing
+              metrics.
             </MDTypography>
           </Grid>
         </Card>
 
-        {/* Dynamic Classrooms */}
+        {/* Classrooms Display */}
         <MDBox mt={4}>
           <Grid container spacing={4}>
             {allocatedClassrooms.map((classroom) => (
@@ -123,14 +146,7 @@ function AllocationPage() {
                   </MDBox>
 
                   <MDBox p={2}>
-                    <MDBox
-                      sx={{
-                        maxHeight: 150,
-                        overflowY: "auto",
-                        mb: 2,
-                        pr: 1,
-                      }}
-                    >
+                    <MDBox sx={{ maxHeight: 150, overflowY: "auto", mb: 2, pr: 1 }}>
                       {classroom.students.length > 0 ? (
                         classroom.students.map((student, index) => (
                           <MDBox key={student.participant_id}>
@@ -141,9 +157,8 @@ function AllocationPage() {
                               py={1}
                             >
                               <MDTypography variant="body2" color="text">
-                                <strong>{student.participant_id}</strong>
-                                {" – "}
-                                {student.first_name} {student.last_name}
+                                <strong>{student.participant_id}</strong> â€“ {student.first_name}{" "}
+                                {student.last_name}
                               </MDTypography>
                             </MDBox>
                             {index < classroom.students.length - 1 && (

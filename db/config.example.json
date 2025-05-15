@@ -1,9 +1,0 @@
-{
-    "database": {
-      "user": "",
-      "password": "", 
-      "host": "aws-0-ap-southeast-2.pooler.supabase.com",
-      "port": 5432,
-      "dbname": "postgres"
-    }
-}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation, Link, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
 
 import AppBar from "@mui/material/AppBar";
@@ -13,6 +13,7 @@ import TextField from "@mui/material/TextField";
 import Fuse from "fuse.js";
 
 import MDBox from "components/MDBox";
+import MDTypography from "components/MDTypography";
 import Breadcrumbs from "examples/Breadcrumbs";
 import NotificationItem from "examples/Items/NotificationItem";
 
@@ -73,6 +74,14 @@ function DashboardNavbar({ absolute, light, isMini }) {
   const handleOpenSettingsMenu = (event) => setOpenSettingsMenu(event.currentTarget);
   const handleCloseSettingsMenu = () => setOpenSettingsMenu(null);
 
+  // ✅ Sign out logic
+  const handleSignOut = () => {
+    localStorage.removeItem("isAuthenticated");
+    sessionStorage.clear(); // optional
+    window.location.href = "/authentication/sign-in"; // full reload ensures clean state
+  };
+
+  // ⚙️ Settings dropdown menu
   const renderSettingsMenu = () => (
     <Menu
       anchorEl={openSettingsMenu}
@@ -81,9 +90,9 @@ function DashboardNavbar({ absolute, light, isMini }) {
       anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
       sx={{ mt: 2 }}
     >
-      <Link to="/authentication/sign-in" style={{ textDecoration: "none", color: "inherit" }}>
+      <MDBox onClick={handleSignOut} sx={{ cursor: "pointer" }}>
         <NotificationItem icon={<Icon>logout</Icon>} title="Sign out" />
-      </Link>
+      </MDBox>
     </Menu>
   );
 
@@ -105,9 +114,10 @@ function DashboardNavbar({ absolute, light, isMini }) {
         <MDBox color="inherit" mb={{ xs: 1, md: 0 }} sx={(theme) => navbarRow(theme, { isMini })}>
           <Breadcrumbs icon="home" title={route[route.length - 1]} route={route} light={light} />
         </MDBox>
+
         {!isMini && (
           <MDBox sx={(theme) => navbarRow(theme, { isMini })}>
-            {/* 🔍 Fuzzy Autocomplete Search */}
+            {/* 🔍 Autocomplete Search */}
             <MDBox pr={1} sx={{ minWidth: 250 }}>
               <Autocomplete
                 freeSolo
@@ -123,7 +133,7 @@ function DashboardNavbar({ absolute, light, isMini }) {
                 onChange={(e, newValue) => {
                   if (newValue?.path) {
                     navigate(newValue.path);
-                    setSearchValue(""); // Optional reset
+                    setSearchValue("");
                   }
                 }}
                 renderInput={(params) => (
@@ -139,26 +149,27 @@ function DashboardNavbar({ absolute, light, isMini }) {
             </MDBox>
 
             <MDBox color={light ? "white" : "inherit"}>
-              {/* 👤 Profile Button */}
-              <Link to="/profile">
-                <IconButton sx={navbarIconButton} size="small" disableRipple>
-                  <Icon sx={iconsStyle}>account_circle</Icon>
-                </IconButton>
-              </Link>
+              {/* 👤 Profile */}
+              <IconButton
+                sx={navbarIconButton}
+                size="small"
+                disableRipple
+                onClick={() => navigate("/profile")}
+              >
+                <Icon sx={iconsStyle}>account_circle</Icon>
+              </IconButton>
 
-              {/* 📂 Mini Sidenav Toggle */}
+              {/* 📂 Toggle Sidenav */}
               <IconButton
                 size="small"
                 disableRipple
                 sx={navbarMobileMenu}
                 onClick={handleMiniSidenav}
               >
-                <Icon sx={iconsStyle} fontSize="medium">
-                  {miniSidenav ? "menu_open" : "menu"}
-                </Icon>
+                <Icon sx={iconsStyle}>{miniSidenav ? "menu_open" : "menu"}</Icon>
               </IconButton>
 
-              {/* ⚙️ Settings Dropdown */}
+              {/* ⚙️ Settings */}
               <IconButton
                 size="small"
                 disableRipple
@@ -170,7 +181,7 @@ function DashboardNavbar({ absolute, light, isMini }) {
               </IconButton>
               {renderSettingsMenu()}
 
-              {/* 🔔 Notification Icon (Static) */}
+              {/* 🔔 Notification */}
               <IconButton size="small" disableRipple color="inherit" sx={navbarIconButton}>
                 <Icon sx={iconsStyle}>notifications</Icon>
               </IconButton>

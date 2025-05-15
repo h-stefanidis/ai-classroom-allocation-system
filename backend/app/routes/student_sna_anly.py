@@ -8,7 +8,7 @@ from db.db_manager import get_db
 
 
 # Create a Blueprint for authentication routess
-sna_bp = Blueprint('student_rel_analy', __name__)
+sna_bp = Blueprint('sna_bp', __name__)
 
 
 
@@ -48,13 +48,18 @@ Top Betweenness: Students acting as bridges between groups (social connectors).
 }
 
 """
-@sna_bp.route("/relationship_data", methods=["GET"])
+@sna_bp.route("/sna_summary_acc_to_cohort", methods=["GET"])
 def sna_summary():
     try:
-        result = analyze_networks_from_db()
+        # Get cohort from query params, default to 2025
+        cohort = request.args.get("cohort", "2025")
+
+        result = analyze_networks_from_db(cohort)
         return jsonify(result)
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 @sna_bp.route("/sna_summary_by_run", methods=["GET"])
 def sna_summary_by_run():

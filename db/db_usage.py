@@ -157,35 +157,81 @@ def get_all_participants():
         df = db.query_df("SELECT * FROM raw.participants;")
         return df
 
-def get_all_more_time():
-    with db:
-        df = db.query_df("SELECT * FROM raw.more_time;")
-        return df
 
-def get_all_influential():
+def get_all_friends(cohort="2025"):
     with db:
-        df = db.query_df("SELECT * FROM raw.influential;")
-        return df
+        return db.query_df(f"""
+            SELECT source, target
+            FROM raw.friends
+            WHERE source IN (
+                SELECT participant_id FROM raw.participants WHERE cohort = '{cohort}'
+            ) AND target IN (
+                SELECT participant_id FROM raw.participants WHERE cohort = '{cohort}'
+            )
+        """)
+def get_all_influential(cohort="2025"):
+    with db:
+        return db.query_df(f"""
+            SELECT source, target
+            FROM raw.influential
+            WHERE source IN (
+                SELECT participant_id FROM raw.participants WHERE cohort = '{cohort}'
+            ) AND target IN (
+                SELECT participant_id FROM raw.participants WHERE cohort = '{cohort}'
+            )
+        """)
 
-def get_all_friends():
-    with db:
-        df = db.query_df("SELECT * FROM raw.friends;")
-        return df
 
-def get_all_feedback():
+def get_all_feedback(cohort="2025"):
     with db:
-        df = db.query_df("SELECT * FROM raw.feedback;")
-        return df
+        return db.query_df(f"""
+            SELECT source, target
+            FROM raw.feedback
+            WHERE source IN (
+                SELECT participant_id FROM raw.participants WHERE cohort = '{cohort}'
+            ) AND target IN (
+                SELECT participant_id FROM raw.participants WHERE cohort = '{cohort}'
+            )
+        """)
 
-def get_all_advice():
-    with db:
-        df = db.query_df("SELECT * FROM raw.feedback;")
-        return df
 
-def get_all_disrespect():
+def get_all_advice(cohort="2025"):
     with db:
-        df = db.query_df("SELECT * FROM raw.disrespect;")
-        return df
+        return db.query_df(f"""
+            SELECT source, target
+            FROM raw.advice
+            WHERE source IN (
+                SELECT participant_id FROM raw.participants WHERE cohort = '{cohort}'
+            ) AND target IN (
+                SELECT participant_id FROM raw.participants WHERE cohort = '{cohort}'
+            )
+        """)
+
+
+def get_all_more_time(cohort="2025"):
+    with db:
+        return db.query_df(f"""
+            SELECT source, target
+            FROM raw.more_time
+            WHERE source IN (
+                SELECT participant_id FROM raw.participants WHERE cohort = '{cohort}'
+            ) AND target IN (
+                SELECT participant_id FROM raw.participants WHERE cohort = '{cohort}'
+            )
+        """)
+
+
+def get_all_disrespect(cohort="2025"):
+    with db:
+        return db.query_df(f"""
+            SELECT source, target
+            FROM raw.disrespect
+            WHERE source IN (
+                SELECT participant_id FROM raw.participants WHERE cohort = '{cohort}'
+            ) AND target IN (
+                SELECT participant_id FROM raw.participants WHERE cohort = '{cohort}'
+            )
+        """)
 
 
 # TODO: Move out of file?

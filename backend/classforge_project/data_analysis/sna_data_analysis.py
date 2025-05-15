@@ -13,20 +13,22 @@ network_db_fetchers = {
     "advice": get_all_advice,
     "disrespect": get_all_disrespect
 }
-
-def analyze_networks_from_db():
-
+def analyze_networks_from_db(cohort="2025"):
+    """
+    Performs SNA metrics (degree, betweenness) for each relationship type,
+    filtered by the given student cohort.
+    """
     network_analysis = {}
 
     for name, fetch_func in network_db_fetchers.items():
-        df = fetch_func()
+        df = fetch_func(cohort)  # ← Pass cohort to each fetcher
         if df is None or df.empty:
             print(f"No data for {name}")
             continue
 
         df.columns = df.columns.str.strip()
         df.dropna(subset=[df.columns[0], df.columns[1]], inplace=True)
-        
+
         G = nx.DiGraph()
         G.add_edges_from(df.iloc[:, :2].values.tolist())
 

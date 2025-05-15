@@ -19,38 +19,13 @@ def createApp(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
-    # Initialise extensions
-    # db.init_app(app)
-    # migrate.init_app(app, db)
-    # login_manager.init_app(app)
-    # bcrypt.init_app(app)
-
     # Enable CORS
     CORS(app, supports_credentials=True, origins=['http://localhost:3000'])
-
-    # Test root route
-    # @app.route('/', methods=['GET'])
-    # def home():
-    #     return jsonify({'message': 'Welcome to the Flask application!'})
-
-    # @app.route("/test-session")
-    # def test_session():
-    #     from flask import session
-    #     if "visits" in session:
-    #         session["visits"] += 1
-    #     else:
-    #         session["visits"] = 1
-    #     return jsonify({"visits": session["visits"]})
-
-    # Register blueprints
-    #from app.routes.api import api as api_bp
-    #app.register_blueprint(api_bp, url_prefix='/api')
     from app.routes.file_handler import file_handler_bp
     from app.routes.users import users_bp
     from app.routes.main import pipeline_bp
     from app.routes.student_sna_anly import sna_bp
     from app.routes.realtionship_summary import relationship_bp
-    from app.routes.auth import auth_bp as auth_bp
 
 
     app.register_blueprint(users_bp)
@@ -59,7 +34,6 @@ def createApp(config_class=Config):
     app.register_blueprint(relationship_bp)
 
     app.register_blueprint(sna_bp)
-    app.register_blueprint(auth_bp, url_prefix='/auth')
     app = Flask(__name__)
 
     return app

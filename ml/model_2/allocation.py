@@ -59,7 +59,7 @@ def allocate_students(
                 break
 
     # Format output as {"Classroom_1": [...], "Classroom_2": [...], ...}
-    allocations = {f"Classroom_{cluster_id + 1}": student_list for cluster_id, student_list in assignments.items()}
+    allocations = {f"{cluster_id + 1}": student_list for cluster_id, student_list in assignments.items()}
 
     result = {
         "Total_Students": num_students,

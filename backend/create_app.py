@@ -6,7 +6,6 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from config import Config
 
-from app.routes.student_rel_anly import student_rel_bp
 
 
 # # Initialise extensions
@@ -49,7 +48,7 @@ def createApp(config_class=Config):
     from app.routes.file_handler import file_handler_bp
     from app.routes.users import users_bp
     from app.routes.main import pipeline_bp
-    from app.routes.run_numbers import allocation_bp
+    from app.routes.student_sna_anly import sna_bp
     from app.routes.realtionship_summary import relationship_bp
     from app.routes.auth import auth_bp as auth_bp
 
@@ -58,9 +57,8 @@ def createApp(config_class=Config):
     app.register_blueprint(pipeline_bp)
     app.register_blueprint(file_handler_bp)
     app.register_blueprint(relationship_bp)
-    app.register_blueprint(allocation_bp)
 
-    app.register_blueprint(student_rel_bp)
+    app.register_blueprint(sna_bp)
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app = Flask(__name__)
 

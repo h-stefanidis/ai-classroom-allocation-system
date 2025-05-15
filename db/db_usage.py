@@ -6,10 +6,6 @@ import hashlib
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 # from db_manager import get_db
-from ml.build_graph import build_graph_from_dataframe
-from ml.export_clusters import export_clusters
-from ml.cluster_with_gnn_with_constraints import cluster_constraints
-from ml.evaluate_model import analyze_graph
 #import ml.evaluate_model
 import json
 from db.db_manager import get_db
@@ -273,16 +269,6 @@ def get_relationship_summary_by_run(run_number: str):
     """
     with db:
         return db.query_df(query, (run_number,))
-    
-
-def get_all_allocation_run_numbers():
-    query = """
-        SELECT DISTINCT run_number
-        FROM public.classroom_allocation
-        ORDER BY run_number DESC;
-    """
-    with db:
-        return db.query_df(query)
 
 def inspect_clustered_graph():
     participants_df = get_all_participants()

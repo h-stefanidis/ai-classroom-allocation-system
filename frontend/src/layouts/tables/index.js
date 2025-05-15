@@ -4,6 +4,10 @@ import Card from "@mui/material/Card";
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
+import Snackbar from "@mui/material/Snackbar";
+import Alert from "@mui/material/Alert";
+import CircularProgress from "@mui/material/CircularProgress";
+import Fade from "@mui/material/Fade";
 
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
@@ -15,18 +19,21 @@ function AllocationPage() {
   const [classroomCount, setClassroomCount] = useState(3);
   const [selectedModel, setSelectedModel] = useState("GraphSAGE");
   const [allocatedClassrooms, setAllocatedClassrooms] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [snack, setSnack] = useState({ open: false, message: "", severity: "success" });
 
   const handleFetchAllocation = async () => {
+    setLoading(true);
     try {
       const url =
         selectedModel === "Ensemble"
           ? `http://127.0.0.1:5000/run_model2?classroomCount=${classroomCount}`
           : `http://127.0.0.1:5000/get_allocation?classroom_count=${classroomCount}`;
 
-      const response = await fetch(url, { method: "GET" });
+      const response = await fetch(url);
       const data = await response.json();
 
-      if (!data || !data.Allocations) return;
+      if (!data || !data.Allocations) throw new Error("No data received");
 
       const classroomMap = {};
       Object.entries(data.Allocations).forEach(([classroom, students]) => {
@@ -37,8 +44,12 @@ function AllocationPage() {
       });
 
       setAllocatedClassrooms(Object.values(classroomMap));
+      setSnack({ open: true, message: "Allocations completed successfully!", severity: "success" });
     } catch (error) {
       console.error("Failed to fetch allocation:", error);
+      setSnack({ open: true, message: "Failed to optimise allocations.", severity: "error" });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -46,7 +57,7 @@ function AllocationPage() {
     <DashboardLayout>
       <DashboardNavbar />
       <MDBox pt={6} pb={3}>
-        {/* Page Heading */}
+        {/* Heading */}
         <MDBox mb={4}>
           <MDTypography variant="h4" fontWeight="bold">
             Student Allocation Panel
@@ -84,7 +95,7 @@ function AllocationPage() {
               </TextField>
             </Grid>
 
-            {/* Model Selection Dropdown */}
+            {/* Model Dropdown */}
             <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
@@ -111,14 +122,15 @@ function AllocationPage() {
                 color="info"
                 size="large"
                 onClick={handleFetchAllocation}
-                sx={{ ml: { md: 2 }, mt: { xs: 2, md: 0 } }}
+                sx={{ ml: { md: 2 }, mt: { xs: 2, md: 0 }, minWidth: 200 }}
+                disabled={loading}
               >
-                Optimise Allocations
+                {loading ? <CircularProgress color="inherit" size={24} /> : "Optimise Allocations"}
               </Button>
             </Grid>
           </Grid>
 
-          {/* Description */}
+          {/* Info */}
           <Grid item xs={12}>
             <MDTypography variant="caption" color="text">
               Allocates students into {classroomCount} classrooms using the{" "}
@@ -128,57 +140,76 @@ function AllocationPage() {
           </Grid>
         </Card>
 
-        {/* Classrooms Display */}
+        {/* Classroom Cards with Fade animation */}
         <MDBox mt={4}>
           <Grid container spacing={4}>
             {allocatedClassrooms.map((classroom) => (
-              <Grid item xs={12} md={6} key={classroom.id}>
-                <Card>
-                  <MDBox
-                    display="flex"
-                    justifyContent="space-between"
-                    alignItems="center"
-                    px={2}
-                    py={2}
-                    borderBottom="1px solid #e0e0e0"
-                  >
-                    <MDTypography variant="h6">{`Classroom ${classroom.id} (${classroom.students.length} students)`}</MDTypography>
-                  </MDBox>
-
-                  <MDBox p={2}>
-                    <MDBox sx={{ maxHeight: 150, overflowY: "auto", mb: 2, pr: 1 }}>
-                      {classroom.students.length > 0 ? (
-                        classroom.students.map((student, index) => (
-                          <MDBox key={student.participant_id}>
-                            <MDBox
-                              display="flex"
-                              justifyContent="space-between"
-                              alignItems="center"
-                              py={1}
-                            >
-                              <MDTypography variant="body2" color="text">
-                                <strong>{student.participant_id}</strong> – {student.first_name}{" "}
-                                {student.last_name}
-                              </MDTypography>
-                            </MDBox>
-                            {index < classroom.students.length - 1 && (
-                              <hr style={{ border: "0.5px solid #e0e0e0" }} />
-                            )}
-                          </MDBox>
-                        ))
-                      ) : (
-                        <MDTypography variant="body2" color="text">
-                          No students assigned.
-                        </MDTypography>
-                      )}
+              <Fade in timeout={600} key={classroom.id}>
+                <Grid item xs={12} md={6}>
+                  <Card>
+                    <MDBox
+                      display="flex"
+                      justifyContent="space-between"
+                      alignItems="center"
+                      px={2}
+                      py={2}
+                      borderBottom="1px solid #e0e0e0"
+                    >
+                      <MDTypography variant="h6">
+                        Classroom {classroom.id} ({classroom.students.length} students)
+                      </MDTypography>
                     </MDBox>
-                  </MDBox>
-                </Card>
-              </Grid>
+                    <MDBox p={2}>
+                      <MDBox sx={{ maxHeight: 150, overflowY: "auto", mb: 2, pr: 1 }}>
+                        {classroom.students.length > 0 ? (
+                          classroom.students.map((student, index) => (
+                            <MDBox key={student.participant_id}>
+                              <MDBox
+                                display="flex"
+                                justifyContent="space-between"
+                                alignItems="center"
+                                py={1}
+                              >
+                                <MDTypography variant="body2" color="text">
+                                  <strong>{student.participant_id}</strong> – {student.first_name}{" "}
+                                  {student.last_name}
+                                </MDTypography>
+                              </MDBox>
+                              {index < classroom.students.length - 1 && (
+                                <hr style={{ border: "0.5px solid #e0e0e0" }} />
+                              )}
+                            </MDBox>
+                          ))
+                        ) : (
+                          <MDTypography variant="body2" color="text">
+                            No students assigned.
+                          </MDTypography>
+                        )}
+                      </MDBox>
+                    </MDBox>
+                  </Card>
+                </Grid>
+              </Fade>
             ))}
           </Grid>
         </MDBox>
       </MDBox>
+
+      {/* Snackbar */}
+      <Snackbar
+        open={snack.open}
+        autoHideDuration={4000}
+        onClose={() => setSnack({ ...snack, open: false })}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert
+          severity={snack.severity}
+          variant="filled"
+          onClose={() => setSnack({ ...snack, open: false })}
+        >
+          {snack.message}
+        </Alert>
+      </Snackbar>
     </DashboardLayout>
   );
 }

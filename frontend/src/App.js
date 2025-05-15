@@ -22,7 +22,7 @@ import createCache from "@emotion/cache";
 
 // Routes
 import routes from "./routes";
-import PrivateRoute from "routes/PrivateRoute";
+import PrivateRoute from "./routes/PrivateRoute";
 
 // Context
 import { useMaterialUIController, setMiniSidenav, setOpenConfigurator } from "./context";

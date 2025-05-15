@@ -91,7 +91,7 @@ function OnboardingPage() {
                 <MDButton
                   variant="contained"
                   color="success"
-                  href="/allocation"
+                  href="/dashboard/tables"
                   startIcon={<Icon>groups</Icon>}
                 >
                   Run Allocation

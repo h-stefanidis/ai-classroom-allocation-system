@@ -119,7 +119,7 @@ export default function App() {
           )}
           <Routes>
             {getRoutes(routes)}
-            <Route path="*" element={<Navigate to="/authentication/sign-in" replace />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </ThemeProvider>
       </CacheProvider>
@@ -142,7 +142,7 @@ export default function App() {
       )}
       <Routes>
         {getRoutes(routes)}
-        <Route path="*" element={<Navigate to="/authentication/sign-in" replace />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </ThemeProvider>
   );

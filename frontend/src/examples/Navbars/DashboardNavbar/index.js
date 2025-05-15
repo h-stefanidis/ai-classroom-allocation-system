@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
 
+// MUI components
 import AppBar from "@mui/material/AppBar";
 import Toolbar from "@mui/material/Toolbar";
 import IconButton from "@mui/material/IconButton";
@@ -9,14 +10,18 @@ import Menu from "@mui/material/Menu";
 import Icon from "@mui/material/Icon";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
+import { useTheme } from "@mui/material/styles";
 
+// Fuse.js for search
 import Fuse from "fuse.js";
 
+// Custom components
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
 import Breadcrumbs from "examples/Breadcrumbs";
 import NotificationItem from "examples/Items/NotificationItem";
 
+// Styles
 import {
   navbar,
   navbarContainer,
@@ -25,9 +30,11 @@ import {
   navbarMobileMenu,
 } from "examples/Navbars/DashboardNavbar/styles";
 
+// Context
 import { useMaterialUIController, setTransparentNavbar, setMiniSidenav } from "context";
 
 function DashboardNavbar({ absolute, light, isMini }) {
+  const theme = useTheme();
   const [navbarType, setNavbarType] = useState();
   const [controller, dispatch] = useMaterialUIController();
   const { miniSidenav, transparentNavbar, fixedNavbar, darkMode } = controller;
@@ -74,14 +81,12 @@ function DashboardNavbar({ absolute, light, isMini }) {
   const handleOpenSettingsMenu = (event) => setOpenSettingsMenu(event.currentTarget);
   const handleCloseSettingsMenu = () => setOpenSettingsMenu(null);
 
-  // ✅ Sign out logic
   const handleSignOut = () => {
     localStorage.removeItem("isAuthenticated");
-    sessionStorage.clear(); // optional
-    window.location.href = "/authentication/sign-in"; // full reload ensures clean state
+    sessionStorage.clear();
+    window.location.href = "/authentication/sign-in";
   };
 
-  // ⚙️ Settings dropdown menu
   const renderSettingsMenu = () => (
     <Menu
       anchorEl={openSettingsMenu}
@@ -91,18 +96,24 @@ function DashboardNavbar({ absolute, light, isMini }) {
       sx={{ mt: 2 }}
     >
       <MDBox onClick={handleSignOut} sx={{ cursor: "pointer" }}>
-        <NotificationItem icon={<Icon>logout</Icon>} title="Sign out" />
+        <NotificationItem icon={<Icon sx={{ fontSize: "1.5rem" }}>logout</Icon>} title="Sign out" />
       </MDBox>
     </Menu>
   );
 
-  const iconsStyle = ({ palette: { dark, white, text }, functions: { rgba } }) => ({
-    color: light || darkMode ? white.main : dark.main,
-    ...(transparentNavbar &&
-      !light && {
-        color: darkMode ? rgba(text.main, 0.6) : text.main,
-      }),
-  });
+  const iconsStyle = (theme) => {
+    const { palette, functions } = theme;
+    const { dark, white, text } = palette;
+    const { rgba } = functions;
+
+    return {
+      color: light || darkMode ? white.main : dark.main,
+      ...(transparentNavbar &&
+        !light && {
+          color: darkMode ? rgba(text.main, 0.6) : text.main,
+        }),
+    };
+  };
 
   return (
     <AppBar
@@ -142,6 +153,10 @@ function DashboardNavbar({ absolute, light, isMini }) {
                     label="Search"
                     variant="outlined"
                     size="small"
+                    sx={{
+                      input: { fontSize: "1rem" },
+                      label: { fontSize: "0.95rem" },
+                    }}
                     InputProps={{ ...params.InputProps, type: "search" }}
                   />
                 )}
@@ -149,27 +164,26 @@ function DashboardNavbar({ absolute, light, isMini }) {
             </MDBox>
 
             <MDBox color={light ? "white" : "inherit"}>
-              {/* 👤 Profile */}
               <IconButton
                 sx={navbarIconButton}
                 size="small"
                 disableRipple
                 onClick={() => navigate("/profile")}
               >
-                <Icon sx={iconsStyle}>account_circle</Icon>
+                <Icon sx={{ ...iconsStyle(theme), fontSize: "1.5rem" }}>account_circle</Icon>
               </IconButton>
 
-              {/* 📂 Toggle Sidenav */}
               <IconButton
                 size="small"
                 disableRipple
                 sx={navbarMobileMenu}
                 onClick={handleMiniSidenav}
               >
-                <Icon sx={iconsStyle}>{miniSidenav ? "menu_open" : "menu"}</Icon>
+                <Icon sx={{ ...iconsStyle(theme), fontSize: "1.5rem" }}>
+                  {miniSidenav ? "menu_open" : "menu"}
+                </Icon>
               </IconButton>
 
-              {/* ⚙️ Settings */}
               <IconButton
                 size="small"
                 disableRipple
@@ -177,13 +191,13 @@ function DashboardNavbar({ absolute, light, isMini }) {
                 sx={navbarIconButton}
                 onClick={handleOpenSettingsMenu}
               >
-                <Icon sx={iconsStyle}>settings</Icon>
+                <Icon sx={{ ...iconsStyle(theme), fontSize: "1.5rem" }}>settings</Icon>
               </IconButton>
+
               {renderSettingsMenu()}
 
-              {/* 🔔 Notification */}
               <IconButton size="small" disableRipple color="inherit" sx={navbarIconButton}>
-                <Icon sx={iconsStyle}>notifications</Icon>
+                <Icon sx={{ ...iconsStyle(theme), fontSize: "1.5rem" }}>notifications</Icon>
               </IconButton>
             </MDBox>
           </MDBox>

@@ -32,8 +32,8 @@ def createApp(config_class=Config):
     app.register_blueprint(pipeline_bp)
     app.register_blueprint(file_handler_bp)
     app.register_blueprint(relationship_bp)
-
     app.register_blueprint(sna_bp)
-    app = Flask(__name__)
+
+
 
     return app

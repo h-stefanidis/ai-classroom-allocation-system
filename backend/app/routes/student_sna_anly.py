@@ -8,7 +8,7 @@ from db.db_manager import get_db
 
 
 # Create a Blueprint for authentication routess
-sna_bp = Blueprint('sna_bp', __name__)
+sna_bp = Blueprint('sna', __name__)
 
 
 
@@ -61,7 +61,7 @@ def sna_summary():
         return jsonify({"error": str(e)}), 500
 
 
-@sna_bp.route("/sna_summary_by_run", methods=["GET"])
+@sna_bp.route("/sna_by_run_number", methods=["GET"])
 def sna_summary_by_run():
     """
     Analyze SNA metrics per classroom for a given run_number.
@@ -76,6 +76,25 @@ def sna_summary_by_run():
     try:
 
         sna_per_class = generate_sna_summary_per_classroom(run_number, db)
+        return jsonify(sna_per_class)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@sna_bp.route("/sna_by_run_number_in_types_of_relationship", methods=["GET"])
+def sna_summary_per_classroom_by_relationship():
+    """
+    Analyze SNA metrics per classroom for a given run_number.
+    If no run_number is provided, uses the most recent run based on classroom_allocation.created_at.
+    Returns: JSON object with top centrality metrics by classroom with different types of relationship.
+    """
+    db = get_db()
+
+    # Try to get run_number from request, else find the latest one
+    run_number = request.args.get("run_number")
+
+    try:
+
+        sna_per_class = generate_sna_summary_per_classroom_by_relationship(run_number, db)
         return jsonify(sna_per_class)
     except Exception as e:
         return jsonify({"error": str(e)}), 500

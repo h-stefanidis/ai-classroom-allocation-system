@@ -13,6 +13,7 @@ network_db_fetchers = {
     "advice": get_all_advice,
     "disrespect": get_all_disrespect
 }
+
 def analyze_networks_from_db(cohort="2025"):
     """
     Performs SNA metrics (degree, betweenness) for each relationship type,
@@ -46,36 +47,33 @@ def analyze_networks_from_db(cohort="2025"):
 
     return network_analysis
 
-# Let's define a new function that analyzes SNA metrics by classroom and run number
 def generate_sna_summary_per_classroom(run_number, db):
-
-    if len(run_number)==0:
+    if not run_number:
         latest_run = db.query_df("""
             SELECT run_number 
             FROM public.classroom_allocation 
-            ORDER BY created_at DESC 
+            ORDER BY id DESC
             LIMIT 1
         """)
         if latest_run.empty:
-            return jsonify({"error": "No run_number found in classroom_allocation table."}), 404
+            return {"error": "No run_number found in classroom_allocation table."}, 404
         run_number = latest_run.iloc[0]["run_number"]
-
 
     # Load relevant data for the run
     edge_df = db.query_df("SELECT * FROM public.edge_relationship WHERE run_number = %s", (run_number,))
     alloc_df = db.query_df("SELECT * FROM public.classroom_allocation WHERE run_number = %s", (run_number,))
-
-
+    print("------------", edge_df)
+    print('-----------',alloc_df)
     if edge_df.empty or alloc_df.empty:
+        return {"error": f"No data found for run_number {run_number}"}, 404
 
-        return jsonify({"error": f"No data found for run_number {run_number}"}), 404
+    import networkx as nx
 
-    # Prepare final summary list
     classroom_sna_summary = []
+
     for classroom_id in alloc_df['classroom_id'].unique():
         students = alloc_df[alloc_df['classroom_id'] == classroom_id]['participant_id'].tolist()
 
-        # Filter edges within that classroom
         sub_edges = edge_df[
             (edge_df['source_id'].isin(students)) &
             (edge_df['target_id'].isin(students))
@@ -89,19 +87,82 @@ def generate_sna_summary_per_classroom(run_number, db):
         btw = nx.betweenness_centrality(G)
 
         summary = {
-            "run_number": run_number,
-            "classroom_id": classroom_id,
-            "num_nodes": G.number_of_nodes(),
-            "num_edges": G.number_of_edges(),
-            "top_in_degree": sorted(in_deg.items(), key=lambda x: x[1], reverse=True)[:5],
-            "top_out_degree": sorted(out_deg.items(), key=lambda x: x[1], reverse=True)[:5],
-            "top_betweenness": sorted(btw.items(), key=lambda x: x[1], reverse=True)[:5],
+            "run_number": str(run_number),
+            "classroom_id": int(classroom_id),  # cast from int64 to int
+            "num_nodes": int(G.number_of_nodes()),
+            "num_edges": int(G.number_of_edges()),
+            "top_in_degree": [{"node": int(k), "value": int(v)} for k, v in sorted(in_deg.items(), key=lambda x: x[1], reverse=True)[:5]],
+            "top_out_degree": [{"node": int(k), "value": int(v)} for k, v in sorted(out_deg.items(), key=lambda x: x[1], reverse=True)[:5]],
+            "top_betweenness": [{"node": int(k), "value": float(v)} for k, v in sorted(btw.items(), key=lambda x: x[1], reverse=True)[:5]],
         }
 
         classroom_sna_summary.append(summary)
 
     return classroom_sna_summary
 
+
+def generate_sna_summary_per_classroom_by_relationship(run_number, db):
+    if not run_number:
+        latest_run = db.query_df("""
+            SELECT run_number 
+            FROM public.classroom_allocation 
+            ORDER BY id DESC 
+            LIMIT 1
+        """)
+        if latest_run.empty:
+            return {"error": "No run_number found in classroom_allocation table."}, 404
+        run_number = latest_run.iloc[0]["run_number"]
+
+    alloc_df = db.query_df("SELECT * FROM public.classroom_allocation WHERE run_number = %s", (run_number,))
+    if alloc_df.empty:
+        return {"error": f"No classroom data found for run_number {run_number}"}, 404
+
+    relationship_types = ["friend", "influence", "feedback", "more_time", "advice", "disrespect"]
+    all_relationship_summaries = {}
+
+    for rel_type in relationship_types:
+        edge_df = db.query_df(f"""
+            SELECT source_id, target_id
+            FROM public.edge_relationship
+            WHERE run_number = %s AND relationship_type = %s
+        """, (run_number, rel_type))
+
+        if edge_df.empty:
+            all_relationship_summaries[rel_type] = []
+            continue
+
+        classroom_sna_summary = []
+        for classroom_id in alloc_df['classroom_id'].unique():
+            students = alloc_df[alloc_df['classroom_id'] == classroom_id]['participant_id'].tolist()
+
+            sub_edges = edge_df[
+                (edge_df['source_id'].isin(students)) &
+                (edge_df['target_id'].isin(students))
+            ]
+
+            G = nx.DiGraph()
+            G.add_edges_from(sub_edges[['source_id', 'target_id']].values)
+
+            in_deg = dict(G.in_degree())
+            out_deg = dict(G.out_degree())
+            btw = nx.betweenness_centrality(G)
+
+            summary = {
+                "run_number": str(run_number),
+                "relationship_type": rel_type,
+                "classroom_id": int(classroom_id),
+                "num_nodes": int(G.number_of_nodes()),
+                "num_edges": int(G.number_of_edges()),
+                "top_in_degree": [{"node": int(k), "value": int(v)} for k, v in sorted(in_deg.items(), key=lambda x: x[1], reverse=True)[:5]],
+                "top_out_degree": [{"node": int(k), "value": int(v)} for k, v in sorted(out_deg.items(), key=lambda x: x[1], reverse=True)[:5]],
+                "top_betweenness": [{"node": int(k), "value": float(v)} for k, v in sorted(btw.items(), key=lambda x: x[1], reverse=True)[:5]],
+            }
+
+            classroom_sna_summary.append(summary)
+
+        all_relationship_summaries[rel_type] = classroom_sna_summary
+
+    return all_relationship_summaries
 
 
 

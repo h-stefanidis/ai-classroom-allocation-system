@@ -86,7 +86,7 @@ def run_model2_route():
     allocation_result= allocate_students(pyg_data, num_allocations=num_allocations, db=db)
     full_json_dict = fetch_student_dict_from_id(db, allocation_result)
     convert_data_in_graph_cluster(allocation_result,pyg_data,graph, db, full_json_dict["Run_Number"])
-    return jsonify(allocate_students)
+    return jsonify(full_json_dict)
 
 
 @pipeline_bp.route("/random_allocation", methods=['GET'])

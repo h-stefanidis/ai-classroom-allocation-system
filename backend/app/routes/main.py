@@ -57,5 +57,3 @@ def run_samsun_model_pipeline():
     #final_output = postprocess_results(results, df)
 
     #return jsonify({"output": final_output})
-
-run_samsun_model_pipeline()

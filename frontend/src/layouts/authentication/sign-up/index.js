@@ -38,10 +38,10 @@ function Cover() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          username: name, // Fix field name
+          username: name,
           email,
           password,
-          role: "student", // or "teacher", depending on your app logic
+          role: "student", // change as needed
         }),
       });
 
@@ -50,7 +50,8 @@ function Cover() {
       const data = await response.json();
       console.log("✅ Signup Success:", data);
 
-      navigate("/dashboard");
+      // ✅ Corrected path
+      navigate("/authentication/sign-in");
     } catch (error) {
       console.error("❌ Signup Error:", error);
       setErrorOpen(true);

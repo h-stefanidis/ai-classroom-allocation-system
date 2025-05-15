@@ -11,7 +11,7 @@ import json
 from db.db_manager import get_db
 from pathlib import Path
 import uuid
-import jsonify
+from flask import jsonify
 
 # Get Database reference
 db = get_db()

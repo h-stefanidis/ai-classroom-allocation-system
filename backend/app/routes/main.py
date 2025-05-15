@@ -13,6 +13,9 @@ from ml.model_2.model2 import generate_embeddings
 from ml.model_2.allocation import allocate_students
 from ml.model_2.convert_data_into_graph_cluster import convert_data_in_graph_cluster
 
+# import for random allocation:
+from ml.model_2.random_allocator import random_classroom_allocator
+
 
 import uuid
 #from db import get_session
@@ -72,9 +75,10 @@ def run_model2_route():
     Expects query parameters: 'num_allocations' (int), 'cohort' (int or str)
     """
     # Get query parameters
-    num_allocations = int(request.args.get('classroomCount', 3))  # default to 3 if not provided
+    num_allocations = int(request.args.get('classroomCount', 4))  # default to 4 if not provided
+    # num_allocations= 4
     cohort = request.args.get('cohort', 2025)  # default to 2025
-    cohort= 2025
+    # cohort= 2025
     db = get_db()
     graph=construct_graph(db,cohort=cohort)
     pyg_data=preprocessing(graph)
@@ -82,7 +86,30 @@ def run_model2_route():
     allocation_result= allocate_students(pyg_data, num_allocations=num_allocations, db=db)
     full_json_dict = fetch_student_dict_from_id(db, allocation_result)
     convert_data_in_graph_cluster(allocation_result,pyg_data,graph, db, full_json_dict["Run_Number"])
-    return jsonify(allocate_students)
+    return jsonify(full_json_dict)
+
+
+@pipeline_bp.route("/random_allocation", methods=['GET'])
+def run_random_allocation():
+    """
+    Randomly assigns students to classrooms.
+    Expects query parameters: 'classroomCount' (int), 'cohort' (int or str, optional)
+    """
+    db = get_db()
+    num_allocations = int(request.args.get('classroomCount', 4))
+    # num_allocations=4
+    cohort = request.args.get('cohort', None)
+    # cohort = 2025
+    if cohort is not None:
+        try:
+            cohort = int(cohort)
+        except ValueError:
+            pass  # keep as string if not int
+
+    allocation_data = random_classroom_allocator(num_allocations, db, cohort=cohort)
+    print (allocation_data)
+    full_json_dict = fetch_student_dict_from_id(db, allocation_data)
+    return jsonify(full_json_dict)
 
 
 

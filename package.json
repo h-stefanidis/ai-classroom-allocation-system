@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "fuse.js": "^7.1.0"
+    "fuse.js": "^7.1.0",
     "axios": "^1.9.0"
   }
 }

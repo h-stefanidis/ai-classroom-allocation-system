@@ -8,7 +8,7 @@ def convert_data_in_graph_cluster(allocation_result,pyg_data, graph, db, run_num
     student_to_cluster = {}
     for i, (classroom, student_list) in enumerate(allocation_result["Allocations"].items()):
         for student_id in student_list:
-            student_to_cluster[int(student_id)] = i  # i is the cluster index
+            student_to_cluster[int(student_id)] = i+1  # i is the cluster index
 
     cluster_labels = [student_to_cluster[int(sid)] for sid in pyg_data.student_ids]
     pyg_data.y = torch.tensor(cluster_labels, dtype=torch.long)  # Required for relationship functions

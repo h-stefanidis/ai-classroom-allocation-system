@@ -40,10 +40,7 @@ def run_samsun_model_pipeline():
 
     print(clustered_data)
     json_data = export_clusters(clustered_data)
-
-    generate_run_number()
     full_json_dict = fetch_student_dict_from_id(db, json_data)
-    save_allocations_to_db(db, full_json_dict)
 
     # Save relationship data
     #compute_preserved_relationships(db, clustered_data, json_with_student_name["Run_Number"])
@@ -60,12 +57,17 @@ def run_model2_route():
     Expects query parameters: 'num_allocations' (int), 'cohort' (int or str)
     """
     # Get query parameters
-    num_allocations = int(request.args.get('num_allocations', 3))  # default to 3 if not provided
-    cohort = request.args.get('cohort', 2025)  # default to 2025
+    # num_allocations = int(request.args.get('num_allocations', 3))  # default to 3 if not provided
+    # cohort = request.args.get('cohort', 2025)  # default to 2025
+    num_allocations= 4
+    cohort= 2025
     db = get_db()
     graph=construct_graph(db,cohort=cohort)
     pyg_data=preprocessing(graph)
     pyg_data=generate_embeddings(pyg_data)
     data= allocate_students(pyg_data, num_allocations=num_allocations, db=db)
-    return data
+    full_json_dict = fetch_student_dict_from_id(db, data)
+    print(full_json_dict)
+    return jsonify(full_json_dict)
+
 

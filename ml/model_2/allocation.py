@@ -7,7 +7,6 @@ from sklearn.cluster import KMeans
 import numpy as np
 from torch_geometric.data import Data
 
-
 # Configure logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -16,7 +15,7 @@ def allocate_students(
     data: Data,
     num_allocations: int,
     db: Database
-) -> List[Dict]:
+) -> dict:
     """
     Allocates students into classrooms using clustering on embeddings stored in `data`.
 
@@ -26,14 +25,18 @@ def allocate_students(
         db (Database): Database connection.
 
     Returns:
-        List[Dict]: Allocation results.
+        dict: Allocation results in the format:
+        {
+            "Total_Students": int,
+            "Total_Classrooms": int,
+            "Allocations": {"Classroom_1": [...], ...}
+        }
     """
     embeddings = data.embeddings
     student_ids = data.student_ids
     num_students = embeddings.size(0)
 
     logger.info(f"Allocating {num_students} students into {num_allocations} balanced groups.")
-    ##todo: Different approach to clustering add if statements to this.
     kmeans = KMeans(n_clusters=num_allocations, random_state=42)
     kmeans.fit(embeddings.cpu().numpy())
     centers = kmeans.cluster_centers_
@@ -52,25 +55,18 @@ def allocate_students(
         sorted_clusters = sorted(enumerate(dists), key=lambda x: x[1])
         for cluster_id, _ in sorted_clusters:
             if len(assignments[cluster_id]) < max_size:
-                assignments[cluster_id].append(student_ids[idx])
+                assignments[cluster_id].append(int(student_ids[idx]))  # Ensure Python int
                 break
 
-    data_to_insert = [(cluster_id, student_id) for cluster_id, student_list in assignments.items() for student_id in student_list]
+    # Format output as {"Classroom_1": [...], "Classroom_2": [...], ...}
+    allocations = {f"Classroom_{cluster_id + 1}": student_list for cluster_id, student_list in assignments.items()}
 
-    insert_query = """
-        INSERT INTO allocation_students (allocation_id, student_id)
-        VALUES (%s, %s)
-    """
+    result = {
+        "Total_Students": num_students,
+        "Total_Classrooms": num_allocations,
+        "Allocations": allocations
+    }
 
-    try:
-        db.execute_many(insert_query, data_to_insert)
-        logger.info(f"Inserted {len(data_to_insert)} student allocations into the database.")
-    except Exception as e:
-        logger.error(f"Failed to insert allocations: {e}")
-
-    result = [{"allocation_id": cluster_id, "students": student_list}
-              for cluster_id, student_list in assignments.items()]
-
-    for r in result:
-        logger.info(f"Class {r['allocation_id']} → {len(r['students'])} students")
+    for classroom, students in allocations.items():
+        logger.info(f"{classroom} → {len(students)} students")
     return result

@@ -50,6 +50,7 @@ def run_samsun_model_pipeline():
     #return jsonify({"output": final_output})
 
 # run_samsun_model_pipeline()
+
 @pipeline_bp.route("/run_model2", methods=['GET'])
 def run_model2_route():
     """

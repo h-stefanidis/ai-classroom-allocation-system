@@ -70,5 +70,3 @@ def run_model2_route():
     full_json_dict = fetch_student_dict_from_id(db, data)
     print(full_json_dict)
     return jsonify(full_json_dict)
-
-

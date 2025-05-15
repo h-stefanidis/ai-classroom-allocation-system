@@ -5,11 +5,25 @@ from ml.fetch_student_name_from_id import fetch_student_name_from_id
 from ml.preserved_relationship import compute_preserved_relationships, save_edge_relationships_db
 from flask import Blueprint, request, jsonify
 from db.db_manager import get_db
+
+# imports for model2:
+from ml.model_2.construct_graph import construct_graph
+from ml.model_2.graph_conversion import preprocessing
+from ml.model_2.model2 import generate_embeddings
+from ml.model_2.allocation import allocate_students
+from ml.model_2.convert_data_into_graph_cluster import convert_data_in_graph_cluster
+
+
+import uuid
+#from db import get_session
 from db.db_usage import (
     update_classroom_allocations,
     drop_allocations_table,
     create_allocations_table,
     populate_allocations_table,
+    save_allocations_to_db,
+    generate_run_number,
+    fetch_student_dict_from_id
 )
 import torch
 
@@ -21,6 +35,8 @@ def run_samsun_model_pipeline():
 
     # Step 2: Build graph and export clusters
     db=get_db()
+
+    classroom_count = int(request.args.get('classroom_count', 4))
     graph = build_graph_from_db(db, 2025)
     participant_ids = graph.participant_ids
 
@@ -29,31 +45,44 @@ def run_samsun_model_pipeline():
         pid.item() if isinstance(pid, torch.Tensor) else pid
         for pid in participant_ids
     ]
-    clustered_data, graph = cluster_students_with_gnn(graph, 4)
+    clustered_data, graph = cluster_students_with_gnn(graph, classroom_count)
 
-    print(clustered_data)
-    json_data = export_clusters(clustered_data)
-
-    update_classroom_allocations(json_data) # Update allocations table
 
     # Save allocation and fetch student first and last names
-    json_with_student_name = fetch_student_name_from_id(db, json_data)
+    # json_with_student_name = fetch_student_name_from_id(db, json_data)
+    json_data = export_clusters(clustered_data)
+    full_json_dict = fetch_student_dict_from_id(db, json_data)
 
 
     # Save relationship data
-    compute_preserved_relationships(db, clustered_data, json_with_student_name["Run_Number"])
+    compute_preserved_relationships(db, clustered_data, full_json_dict["Run_Number"])
     
     # Save intra-classroom edge-level data
-    save_edge_relationships_db(db, clustered_data, json_with_student_name["Run_Number"], participant_ids)
+    save_edge_relationships_db(db, clustered_data, full_json_dict["Run_Number"], participant_ids)
 
    
-    print(json_with_student_name["Run_Number"])
-    return jsonify(json_with_student_name)
-    # Step 3: Update db with classroom info 
+    return jsonify(full_json_dict)
 
-    #print(json_data)
+# run_samsun_model_pipeline()
 
-    ## Step 4: Post-process
-    #final_output = postprocess_results(results, df)
+@pipeline_bp.route("/run_model2", methods=['GET'])
+def run_model2_route():
+    """
+    Run the Model 2 pipeline: construct graph, convert to PyG, run GNN, allocate students.
+    Expects query parameters: 'num_allocations' (int), 'cohort' (int or str)
+    """
+    # Get query parameters
+    num_allocations = int(request.args.get('classroomCount', 3))  # default to 3 if not provided
+    cohort = request.args.get('cohort', 2025)  # default to 2025
+    cohort= 2025
+    db = get_db()
+    graph=construct_graph(db,cohort=cohort)
+    pyg_data=preprocessing(graph)
+    pyg_data=generate_embeddings(pyg_data)
+    allocation_result= allocate_students(pyg_data, num_allocations=num_allocations, db=db)
+    full_json_dict = fetch_student_dict_from_id(db, allocation_result)
+    convert_data_in_graph_cluster(allocation_result,pyg_data,graph, db, full_json_dict["Run_Number"])
+    return jsonify(allocate_students)
 
-    #return jsonify({"output": final_output})
+
+

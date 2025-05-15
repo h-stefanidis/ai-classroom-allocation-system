@@ -1,5 +1,10 @@
 import React, { useState } from "react";
-import { Box, Card, CardContent, Typography, TextField, Button, Grid } from "@mui/material";
+import { Grid, Card, CardContent, TextField, Button } from "@mui/material";
+
+import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
+import DashboardNavbar from "examples/Navbars/DashboardNavbar";
+import MDBox from "components/MDBox";
+import MDTypography from "components/MDTypography";
 
 const AdminToolsPage = () => {
   const [room, setRoom] = useState({ name: "", capacity: "", equipment: "" });
@@ -14,70 +19,75 @@ const AdminToolsPage = () => {
   };
 
   return (
-    <Box p={3} sx={{ marginLeft: "260px" }}>
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Room Management
-              </Typography>
-              <TextField
-                fullWidth
-                label="Room Name"
-                margin="normal"
-                value={room.name}
-                onChange={(e) => setRoom({ ...room, name: e.target.value })}
-              />
-              <TextField
-                fullWidth
-                label="Capacity"
-                margin="normal"
-                value={room.capacity}
-                onChange={(e) => setRoom({ ...room, capacity: e.target.value })}
-              />
-              <TextField
-                fullWidth
-                label="Equipment"
-                margin="normal"
-                value={room.equipment}
-                onChange={(e) => setRoom({ ...room, equipment: e.target.value })}
-              />
-              <Button variant="contained" color="primary" onClick={handleRoomSubmit}>
-                Save Room
-              </Button>
-            </CardContent>
-          </Card>
-        </Grid>
+    <DashboardLayout>
+      <DashboardNavbar />
+      <MDBox py={3}>
+        <Grid container spacing={3}>
+          {/* Room Management Card */}
+          <Grid item xs={12} md={6}>
+            <Card>
+              <CardContent>
+                <MDTypography variant="h6" fontWeight="medium" gutterBottom>
+                  Room Management
+                </MDTypography>
+                <TextField
+                  fullWidth
+                  label="Room Name"
+                  margin="normal"
+                  value={room.name}
+                  onChange={(e) => setRoom({ ...room, name: e.target.value })}
+                />
+                <TextField
+                  fullWidth
+                  label="Capacity"
+                  margin="normal"
+                  value={room.capacity}
+                  onChange={(e) => setRoom({ ...room, capacity: e.target.value })}
+                />
+                <TextField
+                  fullWidth
+                  label="Equipment"
+                  margin="normal"
+                  value={room.equipment}
+                  onChange={(e) => setRoom({ ...room, equipment: e.target.value })}
+                />
+                <Button variant="contained" color="info" onClick={handleRoomSubmit} sx={{ mt: 2 }}>
+                  Save Room
+                </Button>
+              </CardContent>
+            </Card>
+          </Grid>
 
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                User Management
-              </Typography>
-              <TextField
-                fullWidth
-                label="User Email"
-                margin="normal"
-                value={user.email}
-                onChange={(e) => setUser({ ...user, email: e.target.value })}
-              />
-              <TextField
-                fullWidth
-                label="Role (e.g., student/teacher)"
-                margin="normal"
-                value={user.role}
-                onChange={(e) => setUser({ ...user, role: e.target.value })}
-              />
-              <Button variant="contained" color="secondary" onClick={handleUserSubmit}>
-                Save User
-              </Button>
-            </CardContent>
-          </Card>
+          {/* User Management Card */}
+          <Grid item xs={12} md={6}>
+            <Card>
+              <CardContent>
+                <MDTypography variant="h6" fontWeight="medium" gutterBottom>
+                  User Management
+                </MDTypography>
+                <TextField
+                  fullWidth
+                  label="User Email"
+                  margin="normal"
+                  value={user.email}
+                  onChange={(e) => setUser({ ...user, email: e.target.value })}
+                />
+                <TextField
+                  fullWidth
+                  label="Role (e.g., student / teacher)"
+                  margin="normal"
+                  value={user.role}
+                  onChange={(e) => setUser({ ...user, role: e.target.value })}
+                />
+                <Button variant="contained" color="info" onClick={handleUserSubmit} sx={{ mt: 2 }}>
+                  Save User
+                </Button>
+              </CardContent>
+            </Card>
+          </Grid>
         </Grid>
-      </Grid>
-    </Box>
+      </MDBox>
+    </DashboardLayout>
   );
 };
 

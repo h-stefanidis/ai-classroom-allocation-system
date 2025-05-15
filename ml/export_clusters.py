@@ -27,7 +27,7 @@ def export_clusters(clustered_data):
     # Create grouped JSON allocation
     allocations_by_class = defaultdict(list)
     for pid, label in zip(participant_ids, cluster_labels):
-        allocations_by_class[f"Classroom_{label}"].append(pid)
+        allocations_by_class[label+1].append(pid)
 
     json_data = {
         "Total_Students": num_students,

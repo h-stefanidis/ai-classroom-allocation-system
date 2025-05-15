@@ -126,3 +126,13 @@ class Database:
         except Error as e:
             logger.error(f"Fetch one failed: {e}")
             return None
+
+
+        
+    def rollback(self):
+        if self.connection:
+            self.connection.rollback()
+
+    def commit(self):
+        if self.connection:
+            self.connection.commit()

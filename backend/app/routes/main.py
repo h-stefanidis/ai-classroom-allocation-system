@@ -8,6 +8,7 @@ from db.db_manager import get_db
 import uuid
 #from db import get_session
 from db.db_usage import (
+    get_latest_allocations_from_db,
     update_classroom_allocations,
     drop_allocations_table,
     create_allocations_table,
@@ -16,6 +17,14 @@ from db.db_usage import (
     generate_run_number,
     fetch_student_dict_from_id
 )
+
+from ml.model_2.construct_graph import construct_graph
+from ml.model_2.graph_splitting import attach_names_to_graph, get_split_graphs
+
+
+from flask_cors import cross_origin
+
+
 
 pipeline_bp = Blueprint("pipeline", __name__)
 
@@ -45,3 +54,54 @@ def run_samsun_model_pipeline():
     #return jsonify({"output": final_output})
 
 # run_samsun_model_pipeline()
+
+
+@cross_origin(origin='http://localhost:3000')
+@pipeline_bp.route("/cytoscape_subgraphs", methods=['GET'])  
+def cytoscape_subgraphs():
+    db=get_db()
+    graph = construct_graph(db)
+    allocations = get_latest_allocations_from_db(db)
+    data = get_split_graphs(graph, allocations)
+    return jsonify(data)
+
+from flask import Flask, request, jsonify
+from flask_cors import CORS, cross_origin
+
+app = Flask(__name__)
+CORS(app, origins="http://localhost:3000")
+
+from db.db_usage import classroom_update  # make sure it's imported
+
+@pipeline_bp.route('/update_allocations', methods=['POST', 'OPTIONS'])
+@cross_origin(origins='http://localhost:3000', methods=['POST', 'OPTIONS'])
+def update_classroom_allocations():
+    try:
+        allocation_json = request.get_json()
+        allocations = allocation_json.get("Allocations", {})
+        if not allocations:
+            return jsonify({"error": "No allocations found in JSON"}), 400
+
+        update_values = []
+        for classroom_label, student_ids in allocations.items():
+            try:
+                classroom_id = int(classroom_label.split("_")[1])  # e.g., "Classroom_3" -> 3
+            except (IndexError, ValueError):
+                return jsonify({"error": f"Invalid classroom format: {classroom_label}"}), 400
+
+            for student_id in student_ids:
+                update_values.append((student_id, classroom_id))
+                #print(classroom_id)
+                result = classroom_update(student_id, classroom_id)
+                if result["status"] != "success":
+                    return jsonify({"error": result.get("error", "Update failed")}), 500
+
+        return jsonify({
+            "message": "Allocations updated successfully",
+            "total_updated": len(update_values)
+        }), 200
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Server error: {str(e)}"}), 500

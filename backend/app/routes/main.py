@@ -58,9 +58,9 @@ def run_model2_route():
     Expects query parameters: 'num_allocations' (int), 'cohort' (int or str)
     """
     # Get query parameters
-    # num_allocations = int(request.args.get('num_allocations', 3))  # default to 3 if not provided
+    num_allocations = int(request.args.get('classroomCount', 3))  # default to 3 if not provided
     # cohort = request.args.get('cohort', 2025)  # default to 2025
-    num_allocations= 4
+    # num_allocations= 4
     cohort= 2025
     db = get_db()
     graph=construct_graph(db,cohort=cohort)

@@ -11,6 +11,7 @@ import json
 from db.db_manager import get_db
 from pathlib import Path
 import uuid
+from sqlalchemy import text
 from flask import jsonify
 
 # Get Database reference
@@ -24,9 +25,15 @@ def get_all_participants_ids():
         return df
 
 def get_all_participants():
-    with db:
-        df = db.query_df("SELECT * FROM raw.participants;")
-        return df
+    try:
+        with db:
+            df = db.query_df("SELECT * FROM raw.participants;")
+            return df
+    except Exception as e:
+        db.rollback()
+        print(f"Error fetching participants: {e}")
+        return None
+
         
 def get_all_allocations():
     with db:
@@ -115,42 +122,46 @@ def update_classroom_allocations(allocation_json):
     Structure must be: { "Allocations": { "Classroom_X": [student_id, ...], ... } }
     """
 
-
     allocations = allocation_json.get("Allocations", {})
     if not allocations:
         return {"error": "No allocations found in JSON"}, 400
 
-    # Prepare update values
     update_values = []
-    for classroom_label, student_ids in allocations.items():
-        classroom_id = classroom_label  # e.g., "Classroom_2" -> 2
-        for student_id in student_ids:
-            db.execute("""
-                INSERT INTO raw.allocations (student_id, classroom)
-                VALUES (%s, %s)
-                ON CONFLICT (student_id) DO UPDATE
-                SET classroom = EXCLUDED.classroom;
-            """, (student_id, classroom_id))
 
-    # Step 4: Insert new allocations
-    insert_values = []
-    for classroom_name, student_ids in allocations.items():
-        classroom_number = int(classroom_name.split("_")[1])  # e.g., "Classroom_3" -> 3
+    for classroom_label, student_ids in allocations.items():
+        try:
+            classroom_id = int(classroom_label.split("_")[1])  # e.g., "Classroom_3" -> 3
+        except (IndexError, ValueError):
+            return {"error": f"Invalid classroom label: {classroom_label}"}, 400
+
         for student_id in student_ids:
-            update_values.append((student_id, classroom_id))
+            try:
+                update_values.append((int(student_id), classroom_id))
+            except ValueError:
+                return {"error": f"Invalid student ID: {student_id}"}, 400
 
     if not update_values:
         return {"error": "No valid student allocations found"}, 400
 
-    # Perform upsert: insert or update classroom_id if student_id exists
-    db.execute_many("""
-        INSERT INTO raw.allocations (participant_id, classroom_id)
-        VALUES (%s, %s)
-        ON CONFLICT (participant_id) DO UPDATE
-        SET classroom_id = EXCLUDED.classroom_id;
-    """, update_values)
+    try:
+        db.execute_many("""
+            INSERT INTO raw.allocations (participant_id, classroom_id)
+            VALUES (%s, %s)
+            ON CONFLICT (participant_id) DO UPDATE
+            SET classroom_id = EXCLUDED.classroom_id;
+        """, update_values)
 
-    return {"message": "Allocations updated successfully", "total_updated": len(update_values)}, 200
+        # You may need this depending on your DB setup
+        db.commit()
+
+    except Exception as e:
+        db.rollback()
+        return {"error": f"Database error: {str(e)}"}, 500
+
+    return {
+        "message": "Allocations updated successfully",
+        "total_updated": len(update_values)
+    }, 200
 
 def get_all_participants():
     with db:
@@ -281,25 +292,34 @@ def login_user(email, password):
     return None
 
 
-def classroom_update(participant_id: int, classroom_id: int):
+def classroom_update(participant_id: int, classroom_id: str):
     """
     Update the classroom for a given participant_id.
     If the participant_id doesn't exist, insert it.
     Returns a dict with operation status and relevant info.
     """
+    print(participant_id)
+    print(classroom_id)
     try:
-        db.execute("""
-            INSERT INTO raw.allocations (student_id, classroom)
-            VALUES (%s, %s)
-            ON CONFLICT (student_id) DO UPDATE
-            SET classroom = EXCLUDED.classroom;
-        """, (participant_id, classroom_id))
+        full_classroom_id = f"Classroom_{classroom_id}"
+
+        db.execute_query("""
+            UPDATE public.classroom_allocation
+            SET classroom_id = %s
+            WHERE participant_id = %s
+            RETURNING participant_id;
+        """, (full_classroom_id, participant_id))
+        
+        db.commit()
         return {
             "status": "success",
             "participant_id": participant_id,
             "classroom_id": classroom_id
         }
     except Exception as e:
+        import traceback
+        traceback.print_exc()
+        db.rollback() 
         return {
             "status": "failure",
             "participant_id": participant_id,
@@ -385,3 +405,74 @@ def save_allocations_to_db(db, allocation_data: dict):
 
     print(f"Inserted {len(rows_to_insert)} rows for run {run_number}")
     return run_number
+
+
+def get_allocations_from_db(db, run_number: int) -> dict:
+    query = """
+    SELECT classroom_id, participant_id
+    FROM public.classroom_allocation
+    WHERE run_number = %s
+    """
+
+    with db:
+        results = db.query(query, (run_number,))  # Use db.fetch_all or equivalent if available
+
+    allocations = {}
+    for classroom_id, participant_id in results:
+        allocations.setdefault(classroom_id, []).append(participant_id)
+
+    return {
+        "RunNumber": run_number,
+        "Allocations": allocations
+    }
+
+
+def get_latest_allocations_from_db(db_session) -> dict:
+    latest_run_result = db_session.fetch_one(
+        "SELECT run_number FROM public.classroom_allocation ORDER BY created_at DESC LIMIT 1"
+    )
+
+    if not latest_run_result:
+        return {
+            "RunNumber": None,
+            "Allocations": {},
+            "Details": {}
+        }
+
+    latest_run_number = latest_run_result[0]
+
+    df = db_session.query_df(
+        """
+        SELECT 
+            alloc.classroom_id, 
+            alloc.participant_id,
+            par.first_name,
+            par.last_name
+        FROM 
+            public.classroom_allocation AS alloc
+        LEFT JOIN 
+            raw.participants AS par 
+            ON alloc.participant_id = par.participant_id
+        WHERE 
+            alloc.run_number = %s
+        """,
+        (latest_run_number,)
+    )
+
+    allocations = {}
+    details_lookup = {}
+
+    for _, row in df.iterrows():
+        classroom_id = row['classroom_id']
+        participant_id = row['participant_id']
+        allocations.setdefault(classroom_id, []).append(participant_id)
+        details_lookup[participant_id] = {
+            "first_name": row.get("first_name", ""),
+            "last_name": row.get("last_name", "")
+        }
+
+    return {
+        "RunNumber": str(latest_run_number),
+        "Allocations": allocations,
+        "Details": details_lookup
+    }

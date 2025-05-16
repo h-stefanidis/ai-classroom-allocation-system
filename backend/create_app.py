@@ -26,13 +26,15 @@ def createApp(config_class=Config):
     from app.routes.main import pipeline_bp
     from app.routes.student_sna_anly import sna_bp
     from app.routes.realtionship_summary import relationship_bp
-
+    from app.routes.statistical_anly import stats_bp
 
     app.register_blueprint(users_bp)
     app.register_blueprint(pipeline_bp)
     app.register_blueprint(file_handler_bp)
     app.register_blueprint(relationship_bp)
     app.register_blueprint(sna_bp)
+    app.register_blueprint(stats_bp)
+
 
 
 

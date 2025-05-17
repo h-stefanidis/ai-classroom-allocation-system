@@ -1,5 +1,5 @@
 from ml.build_graph_from_db import build_graph_from_db
-from ml.cluster_with_gnn_with_constraints import cluster_students_with_gnn
+from ml.cluster_with_gnn_with_constraints import cluster_students_with_gnn, cluster_students_with_gnn_with_user_input
 from ml.export_clusters import export_clusters
 from ml.fetch_student_name_from_id import fetch_student_name_from_id
 from ml.preserved_relationship import compute_preserved_relationships, save_edge_relationships_db
@@ -76,9 +76,32 @@ def run_samsun_model_pipeline():
    
     return jsonify(full_json_dict)
 
-# run_samsun_model_pipeline()
+@pipeline_bp.route("/get_allocation_by_user_preference", methods=['POST'])  # Use POST to accept JSON body
+def get_allocation_by_user_preference_model1():
+    db = get_db()
 
-<<<<<<< HEAD
+    # Defaults
+    classroom_count = int(request.args.get('classroom_count', 4))
+    cohort = int(request.args.get("cohort", 2025))
+
+    # Accept JSON input for relationship_weights
+    data = request.get_json() or {}
+    relationship_weights = data.get("relationship_weights", {})
+
+    graph = build_graph_from_db(db, cohort)
+    participant_ids = [pid.item() if isinstance(pid, torch.Tensor) else pid for pid in graph.participant_ids]
+
+    # Pass weights to the clustering function
+    clustered_data, graph = cluster_students_with_gnn_with_user_input(graph, classroom_count, relationship_weights)
+
+    json_data = export_clusters(clustered_data)
+    full_json_dict = fetch_student_dict_from_id(db, json_data)
+
+    compute_preserved_relationships(db, clustered_data, full_json_dict["Run_Number"])
+    save_edge_relationships_db(db, clustered_data, full_json_dict["Run_Number"], participant_ids)
+
+    return jsonify(full_json_dict)
+
 
 @cross_origin(origin='http://localhost:3000')
 @pipeline_bp.route("/cytoscape_subgraphs", methods=['GET'])  
@@ -129,7 +152,7 @@ def update_classroom_allocations():
         import traceback
         traceback.print_exc()
         return jsonify({"error": f"Server error: {str(e)}"}), 500
-=======
+        
 @pipeline_bp.route("/run_model2", methods=['GET'])
 def run_model2_route():
     """
@@ -177,4 +200,3 @@ def run_random_allocation():
 
 
 
->>>>>>> f50ae4a424232c8476de2cecd9cd2801bfc3d1f5

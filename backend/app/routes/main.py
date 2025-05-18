@@ -63,6 +63,7 @@ def run_samsun_model_pipeline():
     # Save allocation and fetch student first and last names
     # json_with_student_name = fetch_student_name_from_id(db, json_data)
     json_data = export_clusters(clustered_data)
+    print(json_data)
     full_json_dict = fetch_student_dict_from_id(db, json_data)
 
 
@@ -143,6 +144,7 @@ def run_model2_route():
     pyg_data=preprocessing(graph)
     pyg_data=generate_embeddings(pyg_data)
     allocation_result= allocate_students(pyg_data, num_allocations=num_allocations, db=db)
+    print(allocation_result)
     full_json_dict = fetch_student_dict_from_id(db, allocation_result)
     convert_data_in_graph_cluster(allocation_result,pyg_data,graph, db, full_json_dict["Run_Number"])
     return jsonify(full_json_dict)
@@ -168,6 +170,7 @@ def run_random_allocation():
     allocation_data = random_classroom_allocator(num_allocations, db, cohort=cohort)
     print (allocation_data)
     full_json_dict = fetch_student_dict_from_id(db, allocation_data)
+    print(full_json_dict["Run_Number"])
     return jsonify(full_json_dict)
 
 

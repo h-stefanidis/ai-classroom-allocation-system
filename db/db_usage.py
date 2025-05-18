@@ -1,7 +1,13 @@
+from .db_manager import get_db
+# from ml.build_graph import build_graph_from_dataframe
 import sys
 from pathlib import Path
 import hashlib
 sys.path.append(str(Path(__file__).resolve().parent.parent))
+
+# from db_manager import get_db
+#import ml.evaluate_model
+import json
 from db.db_manager import get_db
 from pathlib import Path
 import uuid
@@ -157,6 +163,91 @@ def update_classroom_allocations(allocation_json):
         "total_updated": len(update_values)
     }, 200
 
+def get_all_participants():
+    with db:
+        df = db.query_df("SELECT * FROM raw.participants;")
+        return df
+
+
+def get_all_friends(cohort="2025"):
+    with db:
+        return db.query_df(f"""
+            SELECT source, target
+            FROM raw.friends
+            WHERE source IN (
+                SELECT participant_id FROM raw.participants WHERE cohort = '{cohort}'
+            ) AND target IN (
+                SELECT participant_id FROM raw.participants WHERE cohort = '{cohort}'
+            )
+        """)
+def get_all_influential(cohort="2025"):
+    with db:
+        return db.query_df(f"""
+            SELECT source, target
+            FROM raw.influential
+            WHERE source IN (
+                SELECT participant_id FROM raw.participants WHERE cohort = '{cohort}'
+            ) AND target IN (
+                SELECT participant_id FROM raw.participants WHERE cohort = '{cohort}'
+            )
+        """)
+
+
+def get_all_feedback(cohort="2025"):
+    with db:
+        return db.query_df(f"""
+            SELECT source, target
+            FROM raw.feedback
+            WHERE source IN (
+                SELECT participant_id FROM raw.participants WHERE cohort = '{cohort}'
+            ) AND target IN (
+                SELECT participant_id FROM raw.participants WHERE cohort = '{cohort}'
+            )
+        """)
+
+
+def get_all_advice(cohort="2025"):
+    with db:
+        return db.query_df(f"""
+            SELECT source, target
+            FROM raw.advice
+            WHERE source IN (
+                SELECT participant_id FROM raw.participants WHERE cohort = '{cohort}'
+            ) AND target IN (
+                SELECT participant_id FROM raw.participants WHERE cohort = '{cohort}'
+            )
+        """)
+
+
+def get_all_more_time(cohort="2025"):
+    with db:
+        return db.query_df(f"""
+            SELECT source, target
+            FROM raw.more_time
+            WHERE source IN (
+                SELECT participant_id FROM raw.participants WHERE cohort = '{cohort}'
+            ) AND target IN (
+                SELECT participant_id FROM raw.participants WHERE cohort = '{cohort}'
+            )
+        """)
+
+
+def get_all_disrespect(cohort="2025"):
+    with db:
+        return db.query_df(f"""
+            SELECT source, target
+            FROM raw.disrespect
+            WHERE source IN (
+                SELECT participant_id FROM raw.participants WHERE cohort = '{cohort}'
+            ) AND target IN (
+                SELECT participant_id FROM raw.participants WHERE cohort = '{cohort}'
+            )
+        """)
+
+
+# TODO: Move out of file?
+# create_allocations_table()
+# populate_allocations_table()
 
 # For login and sign up
 def hash_password(password):
@@ -244,16 +335,6 @@ def get_relationship_summary_by_run(run_number: str):
     """
     with db:
         return db.query_df(query, (run_number,))
-    
-
-def get_all_allocation_run_numbers():
-    query = """
-        SELECT DISTINCT run_number
-        FROM public.classroom_allocation
-        ORDER BY run_number DESC;
-    """
-    with db:
-        return db.query_df(query)
 
 def inspect_clustered_graph():
     participants_df = get_all_participants()

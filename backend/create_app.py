@@ -7,7 +7,6 @@ from flask_cors import CORS
 from config import Config
 
 
-
 # # Initialise extensions
 # db = SQLAlchemy()
 # migrate = Migrate()
@@ -19,23 +18,47 @@ def createApp(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
+    # Initialise extensions
+    # db.init_app(app)
+    # migrate.init_app(app, db)
+    # login_manager.init_app(app)
+    # bcrypt.init_app(app)
+
     # Enable CORS
     CORS(app, supports_credentials=True, origins=['http://localhost:3000'])
+
+    # Test root route
+    # @app.route('/', methods=['GET'])
+    # def home():
+    #     return jsonify({'message': 'Welcome to the Flask application!'})
+
+    # @app.route("/test-session")
+    # def test_session():
+    #     from flask import session
+    #     if "visits" in session:
+    #         session["visits"] += 1
+    #     else:
+    #         session["visits"] = 1
+    #     return jsonify({"visits": session["visits"]})
+
+    # Register blueprints
+    #from app.routes.api import api as api_bp
+    #app.register_blueprint(api_bp, url_prefix='/api')
     from app.routes.file_handler import file_handler_bp
     from app.routes.users import users_bp
     from app.routes.main import pipeline_bp
-    from app.routes.student_sna_anly import sna_bp
+    # from app.routes.run_numbers import allocation_bp
     from app.routes.realtionship_summary import relationship_bp
-    from app.routes.statistical_anly import stats_bp
+    from upload_file.routes import upload_excel_bp
+    from app.routes.main import main_bp
 
     app.register_blueprint(users_bp)
     app.register_blueprint(pipeline_bp)
     app.register_blueprint(file_handler_bp)
     app.register_blueprint(relationship_bp)
-    app.register_blueprint(sna_bp)
-    app.register_blueprint(stats_bp)
-
-
+    # app.register_blueprint(allocation_bp)
+    app.register_blueprint(upload_excel_bp)
+    app.register_blueprint(main_bp)
 
 
     return app

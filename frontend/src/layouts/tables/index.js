@@ -31,7 +31,7 @@ const EXPIRATION_HOURS = 24;
 
 function AllocationPage() {
   const [classroomCount, setClassroomCount] = useState(3);
-  const [selectedModel, setSelectedModel] = useState("GraphSAGE");
+  const [selectedModel, setSelectedModel] = useState("Ensemble");
   const [allocatedClassrooms, setAllocatedClassrooms] = useState([]);
   const [loading, setLoading] = useState(false);
   const [snack, setSnack] = useState({ open: false, message: "", severity: "success" });
@@ -57,9 +57,32 @@ function AllocationPage() {
   const handleFetchAllocation = async () => {
     setLoading(true);
     try {
-      const url = `http://127.0.0.1:5000/run_model2?classroomCount=${classroomCount}&option=${selectedOption}`;
-      const response = await fetch(url);
-      const data = await response.json();
+      let data;
+      console.log(selectedModel);
+      if (selectedModel === "Ensemble") {
+        const url = `http://127.0.0.1:5000/get_allocation_by_user_preference?classroom_count=${classroomCount}&cohort=2025`;
+
+        // Example weights: adjust as needed or expose as inputs in UI
+        const relationship_weights = {
+          academic: selectedOption === "perc_academic" ? 1 : 0,
+          effort: selectedOption === "perc_effort" ? 1 : 0,
+          attendance: selectedOption === "perc_attendance" ? 1 : 0,
+        };
+
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ relationship_weights }),
+        });
+
+        data = await response.json();
+      } else {
+        const url = `http://127.0.0.1:5000/run_model2?classroomCount=${classroomCount}&option=${selectedOption}`;
+        const response = await fetch(url);
+        data = await response.json();
+      }
 
       if (!data || !data.Allocations) throw new Error("No data received");
 

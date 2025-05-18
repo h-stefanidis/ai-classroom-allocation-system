@@ -20,6 +20,9 @@ from ml.model_2.random_allocator import random_classroom_allocator
 import uuid
 #from db import get_session
 from db.db_usage import (
+    get_academic_constraint,
+    get_attendance_constraint,
+    get_effort_constraint,
     get_latest_allocations_from_db,
     update_classroom_allocations,
     drop_allocations_table,
@@ -27,7 +30,8 @@ from db.db_usage import (
     populate_allocations_table,
     save_allocations_to_db,
     generate_run_number,
-    fetch_student_dict_from_id
+    fetch_student_dict_from_id,
+    get_academic_constraint
 )
 import torch
 
@@ -157,22 +161,48 @@ def update_classroom_allocations():
 def run_model2_route():
     """
     Run the Model 2 pipeline: construct graph, convert to PyG, run GNN, allocate students.
-    Expects query parameters: 'num_allocations' (int), 'cohort' (int or str)
+    Expects query parameters:
+      - 'classroomCount' (int): number of classrooms
+      - 'cohort' (int or str): student cohort
+      - 'option' (str): which constraint to weight ('perc_academic', 'perc_effort', or 'perc_attendance')
     """
     # Get query parameters
-    num_allocations = int(request.args.get('classroomCount', 4))  # default to 4 if not provided
-    # num_allocations= 4
-    cohort = request.args.get('cohort', 2025)  # default to 2025
-    # cohort= 2025
+    num_allocations = int(request.args.get('classroomCount', 4))  # default to 4
+    cohort = request.args.get('cohort', 2025)                     # default to 2025
+    option = request.args.get('option', 'perc_academic')          # default to academic constraint
+
+    # Step 1: Prepare graph + embeddings
     db = get_db()
-    graph=construct_graph(db,cohort=cohort)
-    pyg_data=preprocessing(graph)
-    pyg_data=generate_embeddings(pyg_data)
-    allocation_result= allocate_students(pyg_data, num_allocations=num_allocations, db=db)
-    print(allocation_result)
+    graph = construct_graph(db, cohort=cohort)
+    pyg_data = preprocessing(graph)
+    pyg_data = generate_embeddings(pyg_data)
+
+    # Step 2: Choose constraint map based on frontend option
+    if (option == "perc_academic"):
+        constraint_map = get_academic_constraint(db)
+    elif (option == "perc_effort"):
+        constraint_map = get_effort_constraint(db)
+    elif (option == "perc_attendance"):
+        constraint_map = get_attendance_constraint(db)
+    else:
+        return jsonify({"error": f"Unknown option '{option}'"}), 400
+
+    # Step 3: Allocate
+    allocation_result = allocate_students(
+        data=pyg_data,
+        num_allocations=num_allocations,
+        db=db,
+        constraint_map=constraint_map
+    )
+
+    # Step 4: Post-process
     full_json_dict = fetch_student_dict_from_id(db, allocation_result)
-    convert_data_in_graph_cluster(allocation_result,pyg_data,graph, db, full_json_dict["Run_Number"])
+    convert_data_in_graph_cluster(allocation_result, pyg_data, graph, db, full_json_dict["Run_Number"])
+
+    # Merge the average scores into the final result
+    full_json_dict["AveragePerformance"] = allocation_result.get("AveragePerformance", {})
     return jsonify(full_json_dict)
+
 
 
 @pipeline_bp.route("/random_allocation", methods=['GET'])

@@ -37,6 +37,7 @@ function AllocationPage() {
   const [snack, setSnack] = useState({ open: false, message: "", severity: "success" });
   const [insightClassroom, setInsightClassroom] = useState(null);
   const [selectedOption, setSelectedOption] = useState("perc_academic");
+  const [lastRunNumber, setLastRunNumber] = useState(null);
 
   useEffect(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -48,29 +49,83 @@ function AllocationPage() {
         setAllocatedClassrooms(parsed.data || []);
         setClassroomCount(parsed.count || 3);
         setSelectedModel(parsed.model || "GraphSAGE");
+
+        const model = parsed.model || "GraphSAGE";
+        setSelectedModel(model);
+        const run = localStorage.getItem(`${model}_lastRunNumber`);
+        if (run) setLastRunNumber(run);
       } else {
         localStorage.removeItem(LOCAL_STORAGE_KEY);
       }
     }
   }, []);
 
+  const fetchAndInjectPsychometrics = async (runNumber, classroomMap) => {
+    const statsRes = await fetch(
+      `http://127.0.0.1:5000/psychometrics-stats-normalized?run_number=${runNumber}`
+    );
+    const statsData = await statsRes.json();
+
+    statsData.psychometrics_by_classroom_normalized.forEach((entry) => {
+      const id = entry.classroom_id;
+      if (classroomMap[id]) {
+        classroomMap[id].psychometrics = {
+          growth_mindset: entry.growth_mindset,
+          comfortable: entry.comfortable,
+          isolated: entry.isolated,
+          criticises: entry.criticises,
+          manbox5_overall: entry.manbox5_overall,
+          wellbeing: entry.pwi_wellbeing,
+        };
+      }
+    });
+
+    statsData.relationship_preservation.friend.forEach((entry) => {
+      const id = entry.classroom_id;
+      if (classroomMap[id]) {
+        classroomMap[id].relationships = {
+          friendsPreserved: entry.percentage,
+        };
+      }
+    });
+
+    statsData.relationship_preservation.advice.forEach((entry) => {
+      const id = entry.classroom_id;
+      if (classroomMap[id]) {
+        classroomMap[id].relationships.advicePreserved = entry.percentage;
+      }
+    });
+
+    statsData.relationship_preservation.influence.forEach((entry) => {
+      const id = entry.classroom_id;
+      if (classroomMap[id]) {
+        classroomMap[id].relationships.influencePreserved = entry.percentage;
+      }
+    });
+  };
+
   const handleFetchAllocation = async () => {
     setLoading(true);
     try {
-      const url = `http://127.0.0.1:5000/run_model2?classroomCount=${classroomCount}&option=${selectedOption}`;
+      let url = "";
+      if (selectedModel === "Latest") {
+        url = `http://127.0.0.1:5000/get_allocation`;
+      } else if (selectedModel === "ByPreference") {
+        url = `http://127.0.0.1:5000/get_allocation_by_user_preference?option=${selectedOption}`;
+      } else {
+        url = `http://127.0.0.1:5000/run_model2?classroomCount=${classroomCount}&option=${selectedOption}`;
+      }
+
       const response = await fetch(url);
       const data = await response.json();
-
       if (!data || !data.Allocations) throw new Error("No data received");
 
+      // Prepare classroomMap
       const classroomMap = {};
       Object.entries(data.Allocations).forEach(([classroom, students]) => {
         classroomMap[classroom] = {
           id: classroom,
           students,
-          disrespect: Math.floor(Math.random() * 10),
-          friendships: Math.floor(Math.random() * 20),
-          influence: (Math.random() * 10).toFixed(1),
           avgPerformance: {
             academic: data.AveragePerformance?.perc_academic?.[classroom] ?? null,
             effort: data.AveragePerformance?.perc_effort?.[classroom] ?? null,
@@ -81,21 +136,81 @@ function AllocationPage() {
 
       const updatedClassrooms = Object.values(classroomMap);
 
-      localStorage.setItem(
-        LOCAL_STORAGE_KEY,
-        JSON.stringify({
-          timestamp: Date.now(),
-          model: selectedModel,
-          count: classroomCount,
-          data: updatedClassrooms,
-        })
-      );
+      // Store in local storage (if needed)
+      if (selectedModel === "GraphSAGE" || selectedModel === "Ensemble") {
+        localStorage.setItem(
+          LOCAL_STORAGE_KEY,
+          JSON.stringify({
+            timestamp: Date.now(),
+            model: selectedModel,
+            count: classroomCount,
+            data: updatedClassrooms,
+          })
+        );
 
-      setAllocatedClassrooms(updatedClassrooms);
-      setSnack({ open: true, message: "Allocations completed successfully!", severity: "success" });
+        if (data.run_number !== undefined) {
+          localStorage.setItem(`${selectedModel}_lastRunNumber`, data.run_number);
+          setLastRunNumber(data.run_number);
+
+          if (data.run_number !== undefined) {
+            localStorage.setItem(`${selectedModel}_lastRunNumber`, data.run_number);
+            setLastRunNumber(data.run_number);
+
+            // ✅ Call the helper
+            await fetchAndInjectPsychometrics(data.run_number, classroomMap);
+          }
+
+          // Inject key stats into classroomMap
+          statsData.psychometrics_by_classroom_normalized.forEach((entry) => {
+            const id = entry.classroom_id;
+            if (classroomMap[id]) {
+              classroomMap[id].psychometrics = {
+                growth_mindset: entry.growth_mindset,
+                comfortable: entry.comfortable,
+                isolated: entry.isolated,
+                criticises: entry.criticises,
+                manbox5_overall: entry.manbox5_overall,
+                wellbeing: entry.pwi_wellbeing,
+              };
+            }
+          });
+
+          statsData.relationship_preservation.friend.forEach((entry) => {
+            const id = entry.classroom_id;
+            if (classroomMap[id]) {
+              classroomMap[id].relationships = {
+                friendsPreserved: entry.percentage,
+              };
+            }
+          });
+
+          statsData.relationship_preservation.advice.forEach((entry) => {
+            const id = entry.classroom_id;
+            if (classroomMap[id]) {
+              classroomMap[id].relationships.advicePreserved = entry.percentage;
+            }
+          });
+
+          statsData.relationship_preservation.influence.forEach((entry) => {
+            const id = entry.classroom_id;
+            if (classroomMap[id]) {
+              classroomMap[id].relationships.influencePreserved = entry.percentage;
+            }
+          });
+        }
+      }
+
+      setAllocatedClassrooms(Object.values(classroomMap));
+      setSnack({
+        open: true,
+        message: `Allocations loaded successfully! ${
+          data.run_number !== undefined ? `(Run #${data.run_number})` : ""
+        }`,
+        severity: "success",
+      });
     } catch (error) {
       console.error("Failed to fetch allocation:", error);
-      setSnack({ open: true, message: "Failed to optimise allocations.", severity: "error" });
+      setSnack({ open: true, message: "Failed to load allocation.", severity: "error" });
     } finally {
       setLoading(false);
     }
@@ -169,15 +284,30 @@ function AllocationPage() {
                 select
                 label="Select Model"
                 value={selectedModel}
-                onChange={(e) => setSelectedModel(e.target.value)}
+                onChange={(e) => {
+                  const model = e.target.value;
+                  setSelectedModel(model);
+                  const storedRun = localStorage.getItem(`${model}_lastRunNumber`);
+                  if (storedRun) {
+                    setLastRunNumber(storedRun);
+                  } else {
+                    setLastRunNumber(null);
+                  }
+                }}
                 size="medium"
               >
-                {["Ensemble", "GraphSAGE"].map((model) => (
+                {["GraphSAGE", "Ensemble", "Latest", "ByPreference"].map((model) => (
                   <MenuItem key={model} value={model}>
                     {model}
                   </MenuItem>
                 ))}
               </TextField>
+
+              {lastRunNumber && (
+                <MDTypography variant="caption" color="text">
+                  Last run for <strong>{selectedModel}</strong>: #{lastRunNumber}
+                </MDTypography>
+              )}
             </Grid>
 
             <Grid item xs={12} md="auto">
@@ -277,6 +407,48 @@ function AllocationPage() {
                         : "N/A"}
                     </MDTypography>
                   </MDBox>
+                  {classroom.psychometrics && (
+                    <MDBox px={2} py={1} mt={1} bgcolor="#f0f0f0">
+                      <MDTypography variant="body2">
+                        <strong>Growth Mindset:</strong>{" "}
+                        {classroom.psychometrics.growth_mindset.toFixed(2)}
+                      </MDTypography>
+                      <MDTypography variant="body2">
+                        <strong>Comfortable:</strong>{" "}
+                        {classroom.psychometrics.comfortable.toFixed(2)}
+                      </MDTypography>
+                      <MDTypography variant="body2">
+                        <strong>Isolated:</strong> {classroom.psychometrics.isolated.toFixed(2)}
+                      </MDTypography>
+                      <MDTypography variant="body2">
+                        <strong>Criticises:</strong> {classroom.psychometrics.criticises.toFixed(2)}
+                      </MDTypography>
+                      <MDTypography variant="body2">
+                        <strong>Manbox Attitudes:</strong>{" "}
+                        {classroom.psychometrics.manbox5_overall.toFixed(2)}
+                      </MDTypography>
+                      <MDTypography variant="body2">
+                        <strong>Wellbeing:</strong> {classroom.psychometrics.wellbeing.toFixed(2)}
+                      </MDTypography>
+                    </MDBox>
+                  )}
+
+                  {classroom.relationships && (
+                    <MDBox px={2} py={1} bgcolor="#fafafa">
+                      <MDTypography variant="body2">
+                        <strong>Friendships Preserved:</strong>{" "}
+                        {classroom.relationships.friendsPreserved.toFixed(1)}%
+                      </MDTypography>
+                      <MDTypography variant="body2">
+                        <strong>Advice Links Preserved:</strong>{" "}
+                        {classroom.relationships.advicePreserved.toFixed(1)}%
+                      </MDTypography>
+                      <MDTypography variant="body2">
+                        <strong>Influence Links Preserved:</strong>{" "}
+                        {classroom.relationships.influencePreserved.toFixed(1)}%
+                      </MDTypography>
+                    </MDBox>
+                  )}
                 </Card>
               </Grid>
             </Fade>

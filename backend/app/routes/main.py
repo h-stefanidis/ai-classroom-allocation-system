@@ -54,6 +54,7 @@ def run_samsun_model_pipeline():
     save_edge_relationships_db(db, clustered_data, full_json_dict["Run_Number"], participant_ids)
     return jsonify(full_json_dict)
 
+=======
 @pipeline_bp.route("/get_allocation_by_user_preference", methods=['POST'])
 @cross_origin(origin='http://localhost:3000')
 def get_allocation_by_user_preference_model1():
@@ -92,7 +93,7 @@ def update_classroom_allocations():
         update_values = []
         for classroom_label, student_ids in allocations.items():
             try:
-                classroom_id = int(classroom_label.split("_")[1])
+                classroom_id = int(classroom_label)  # e.g., "Classroom_3" -> 3
             except (IndexError, ValueError):
                 return jsonify({"error": f"Invalid classroom format: {classroom_label}"}), 400
 

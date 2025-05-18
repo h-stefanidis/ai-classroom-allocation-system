@@ -13,6 +13,8 @@ from pathlib import Path
 import uuid
 from sqlalchemy import text
 from flask import jsonify
+import pandas as pd
+import numpy as np
 
 # Get Database reference
 db = get_db()
@@ -476,3 +478,45 @@ def get_latest_allocations_from_db(db_session) -> dict:
         "Allocations": allocations,
         "Details": details_lookup
     }
+
+
+def get_effort_constraint(db_session):
+    df = db.query_df("SELECT participant_id, perc_effort FROM raw.participants;")
+    # Clean types
+    df['participant_id'] = pd.to_numeric(df['participant_id'], errors='coerce').fillna(0).astype(int)
+    df['perc_effort'] = pd.to_numeric(df['perc_effort'], errors='coerce').fillna(0)
+
+    print(df.columns)
+
+
+    # Convert to dict mapping: participant_id -> perc_academic
+    constraint_map = dict(zip(df['participant_id'], df['perc_effort']))
+    return constraint_map
+    
+
+def get_attendance_constraint(db_session):
+    df = db.query_df("SELECT participant_id, attendance FROM raw.participants;")
+    # Clean types
+    df['participant_id'] = pd.to_numeric(df['participant_id'], errors='coerce').fillna(0).astype(int)
+    df['attendance'] = pd.to_numeric(df['attendance'], errors='coerce').fillna(0)
+
+    print(df.columns)
+
+
+    # Convert to dict mapping: participant_id -> perc_academic
+    constraint_map = dict(zip(df['participant_id'], df['attendance']))
+    return constraint_map
+
+
+def get_academic_constraint(db_session):
+    df = db.query_df("SELECT participant_id, perc_academic FROM raw.participants;")
+
+    # Clean types
+    df['participant_id'] = pd.to_numeric(df['participant_id'], errors='coerce').fillna(0).astype(int)
+    df['perc_academic'] = pd.to_numeric(df['perc_academic'], errors='coerce').fillna(0)
+
+    print(df.columns)
+
+    # Convert to dict mapping: participant_id -> perc_academic
+    constraint_map = dict(zip(df['participant_id'], df['perc_academic']))
+    return constraint_map

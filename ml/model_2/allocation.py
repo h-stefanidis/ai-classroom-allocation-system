@@ -14,59 +14,82 @@ logging.basicConfig(level=logging.INFO)
 def allocate_students(
     data: Data,
     num_allocations: int,
-    db: Database
+    db: Database,
+    constraint_map: Dict[int, float],
+    academic_weight: float = 2.0,
+    all_constraints: Dict[str, Dict[int, float]] = None,
 ) -> dict:
-    """
-    Allocates students into classrooms using clustering on embeddings stored in `data`.
 
-    Args:
-        data (Data): PyG data object with `embeddings` and `student_ids`.
-        num_allocations (int): Number of classrooms.
-        db (Database): Database connection.
-
-    Returns:
-        dict: Allocation results in the format:
-        {
-            "Total_Students": int,
-            "Total_Classrooms": int,
-            "Allocations": {"Classroom_1": [...], ...}
-        }
     """
-    embeddings = data.embeddings
+    Evenly allocates students into classrooms while trying to balance average academic score.
+    """
     student_ids = data.student_ids
-    num_students = embeddings.size(0)
+    embeddings = data.embeddings.cpu().numpy()
 
-    logger.info(f"Allocating {num_students} students into {num_allocations} balanced groups.")
-    kmeans = KMeans(n_clusters=num_allocations, random_state=42)
-    kmeans.fit(embeddings.cpu().numpy())
-    centers = kmeans.cluster_centers_
+    # Normalize academic scores
+    academic_scores = np.array([constraint_map.get(int(sid), 0) for sid in student_ids])
+    min_score, max_score = academic_scores.min(), academic_scores.max()
+    norm_scores = (academic_scores - min_score) / (max_score - min_score + 1e-6)
 
+    # Extend embeddings with weighted academic score
+    extended_embeddings = np.hstack([
+        embeddings,
+        (academic_weight * norm_scores[:, np.newaxis])
+    ])
+
+    # Get student list with academic info
+    student_list = list(zip(student_ids, extended_embeddings, norm_scores))
+
+    # Sort by academic score (descending)
+    student_list.sort(key=lambda x: x[2], reverse=True)
+
+    # Initialize balanced bins
+    max_per_group = math.ceil(len(student_list) / num_allocations)
     assignments = {i: [] for i in range(num_allocations)}
-    max_size = math.ceil(num_students / num_allocations)
+    group_scores = {i: 0.0 for i in range(num_allocations)}
 
-    distances = []
-    for idx, emb in enumerate(embeddings.cpu().numpy()):
-        dists = [np.linalg.norm(emb - center) for center in centers]
-        distances.append((idx, dists))
+    # Round-robin assign students to group with lowest total academic score & not full
+    for student_id, emb, score in student_list:
+        eligible_groups = [
+            gid for gid in range(num_allocations)
+            if len(assignments[gid]) < max_per_group
+        ]
+        best_group = min(eligible_groups, key=lambda gid: group_scores[gid])
+        assignments[best_group].append(int(student_id))
+        group_scores[best_group] += score
 
-    distances.sort(key=lambda x: min(x[1]))
+    # Logging
+    for gid in assignments:
+        avg_score = group_scores[gid] / len(assignments[gid])
+        logger.info(f"Classroom {gid + 1}: {len(assignments[gid])} students, avg perc_academic = {avg_score:.2f}")
 
-    for idx, dists in distances:
-        sorted_clusters = sorted(enumerate(dists), key=lambda x: x[1])
-        for cluster_id, _ in sorted_clusters:
-            if len(assignments[cluster_id]) < max_size:
-                assignments[cluster_id].append(int(student_ids[idx]))  # Ensure Python int
-                break
+    allocations = {f"{gid + 1}": members for gid, members in assignments.items()}
+    avg_performance_scores = {}
+    for cluster_id, members in assignments.items():
+        scores = [constraint_map.get(sid, 0) for sid in members]
+        avg_score = np.mean(scores) if scores else 0
+        avg_performance_scores[str(cluster_id + 1)] = avg_score
+        print(avg_score)
 
-    # Format output as {"Classroom_1": [...], "Classroom_2": [...], ...}
-    allocations = {f"{cluster_id + 1}": student_list for cluster_id, student_list in assignments.items()}
+    # Compute average scores for all metrics per classroom
+    average_metrics_per_classroom = {}
+
+    for metric_name, metric_map in (all_constraints or {}).items():
+        average_metrics_per_classroom[metric_name] = {}
+        for cluster_id, members in assignments.items():
+            scores = [metric_map.get(sid, 0) for sid in members]
+            avg_score = np.mean(scores) if scores else 0
+            average_metrics_per_classroom[metric_name][str(cluster_id + 1)] = avg_score
+
+  # Key matches frontend classroom keys
 
     result = {
-        "Total_Students": num_students,
+        "Total_Students": len(student_ids),
         "Total_Classrooms": num_allocations,
-        "Allocations": allocations
+        "Allocations": allocations,
+        "AveragePerformance": average_metrics_per_classroom  # <-- now holds all metrics
     }
 
-    for classroom, students in allocations.items():
-        logger.info(f"{classroom} → {len(students)} students")
+
     return result
+

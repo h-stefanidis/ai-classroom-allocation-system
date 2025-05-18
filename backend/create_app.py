@@ -51,6 +51,9 @@ def createApp(config_class=Config):
     from app.routes.realtionship_summary import relationship_bp
     from upload_file.routes import upload_excel_bp
     from app.routes.main import main_bp
+    from app.routes.statistical_anly import stats_bp
+    from app.routes.realtionship_summary import relationship_bp
+    from app.routes.student_sna_anly import sna_bp
 
     app.register_blueprint(users_bp)
     app.register_blueprint(pipeline_bp)
@@ -59,6 +62,10 @@ def createApp(config_class=Config):
     # app.register_blueprint(allocation_bp)
     app.register_blueprint(upload_excel_bp)
     app.register_blueprint(main_bp)
+    app.register_blueprint(stats_bp)
+    app.register_blueprint(sna_bp)
+
+
 
 
     return app

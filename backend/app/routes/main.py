@@ -18,7 +18,7 @@ from db.db_usage import (
     save_allocations_to_db,
     generate_run_number,
     fetch_student_dict_from_id,
-    get_academic_constraint
+    get_academic_constraint,
     classroom_update
 )
 
@@ -54,7 +54,6 @@ def run_samsun_model_pipeline():
     save_edge_relationships_db(db, clustered_data, full_json_dict["Run_Number"], participant_ids)
     return jsonify(full_json_dict)
 
-=======
 @pipeline_bp.route("/get_allocation_by_user_preference", methods=['POST'])
 @cross_origin(origin='http://localhost:3000')
 def get_allocation_by_user_preference_model1():

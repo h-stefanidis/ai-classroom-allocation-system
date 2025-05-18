@@ -99,6 +99,12 @@ def generate_sna_summary_per_classroom(run_number, db):
     classroom_sna_summary = []
 
     for classroom_id in alloc_df['classroom_id'].unique():
+         # Handle 'Classroom_2' → 2 or keep as int if already clean
+        classroom_id = int(classroom_id) if isinstance(classroom_id, str) else int(classroom_id)
+
+        alloc_df["classroom_id"] = alloc_df["classroom_id"].astype(int)
+        classroom_id = int(classroom_id)
+
         students = alloc_df[alloc_df['classroom_id'] == classroom_id]['participant_id'].tolist()
         sub_edges = edge_df[
             (edge_df['source_id'].isin(students)) &

@@ -16,8 +16,10 @@ def allocate_students(
     num_allocations: int,
     db: Database,
     constraint_map: Dict[int, float],
-    academic_weight: float = 2.0
+    academic_weight: float = 2.0,
+    all_constraints: Dict[str, Dict[int, float]] = None,
 ) -> dict:
+
     """
     Evenly allocates students into classrooms while trying to balance average academic score.
     """
@@ -68,12 +70,24 @@ def allocate_students(
         avg_score = np.mean(scores) if scores else 0
         avg_performance_scores[str(cluster_id + 1)] = avg_score
         print(avg_score)
+
+    # Compute average scores for all metrics per classroom
+    average_metrics_per_classroom = {}
+
+    for metric_name, metric_map in (all_constraints or {}).items():
+        average_metrics_per_classroom[metric_name] = {}
+        for cluster_id, members in assignments.items():
+            scores = [metric_map.get(sid, 0) for sid in members]
+            avg_score = np.mean(scores) if scores else 0
+            average_metrics_per_classroom[metric_name][str(cluster_id + 1)] = avg_score
+
   # Key matches frontend classroom keys
 
     result = {
         "Total_Students": len(student_ids),
         "Total_Classrooms": num_allocations,
         "Allocations": allocations,
-        "AveragePerformance": avg_performance_scores,
+        "AveragePerformance": average_metrics_per_classroom  # <-- now holds all metrics
     }
     return result
+

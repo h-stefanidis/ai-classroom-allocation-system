@@ -177,23 +177,32 @@ def run_model2_route():
     pyg_data = preprocessing(graph)
     pyg_data = generate_embeddings(pyg_data)
 
-    # Step 2: Choose constraint map based on frontend option
-    if (option == "perc_academic"):
-        constraint_map = get_academic_constraint(db)
-    elif (option == "perc_effort"):
-        constraint_map = get_effort_constraint(db)
-    elif (option == "perc_attendance"):
-        constraint_map = get_attendance_constraint(db)
+    academic_map = get_academic_constraint(db)
+    effort_map = get_effort_constraint(db)
+    attendance_map = get_attendance_constraint(db)
+
+    # Choose main constraint for optimization
+    if option == "perc_academic":
+        main_constraint = academic_map
+    elif option == "perc_effort":
+        main_constraint = effort_map
+    elif option == "perc_attendance":
+        main_constraint = attendance_map
     else:
         return jsonify({"error": f"Unknown option '{option}'"}), 400
 
-    # Step 3: Allocate
     allocation_result = allocate_students(
         data=pyg_data,
         num_allocations=num_allocations,
         db=db,
-        constraint_map=constraint_map
+        constraint_map=main_constraint,
+        all_constraints={
+            "perc_academic": academic_map,
+            "perc_effort": effort_map,
+            "perc_attendance": attendance_map,
+        }
     )
+
 
     # Step 4: Post-process
     full_json_dict = fetch_student_dict_from_id(db, allocation_result)

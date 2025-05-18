@@ -71,7 +71,11 @@ function AllocationPage() {
           disrespect: Math.floor(Math.random() * 10),
           friendships: Math.floor(Math.random() * 20),
           influence: (Math.random() * 10).toFixed(1),
-          avgPerformance: data.AveragePerformance?.[classroom] ?? null,
+          avgPerformance: {
+            academic: data.AveragePerformance?.perc_academic?.[classroom] ?? null,
+            effort: data.AveragePerformance?.perc_effort?.[classroom] ?? null,
+            attendance: data.AveragePerformance?.perc_attendance?.[classroom] ?? null,
+          },
         };
       });
 
@@ -255,9 +259,21 @@ function AllocationPage() {
 
                   <MDBox px={2} py={1} bgcolor="#f9f9f9" borderTop="1px solid #e0e0e0">
                     <MDTypography variant="body2">
-                      <strong>Avg. Performance:</strong>{" "}
-                      {typeof classroom.avgPerformance === "number"
-                        ? classroom.avgPerformance.toFixed(2)
+                      <strong>Avg. Academic:</strong>{" "}
+                      {typeof classroom.avgPerformance?.academic === "number"
+                        ? classroom.avgPerformance.academic.toFixed(2)
+                        : "N/A"}
+                    </MDTypography>
+                    <MDTypography variant="body2">
+                      <strong>Avg. Effort:</strong>{" "}
+                      {typeof classroom.avgPerformance?.effort === "number"
+                        ? classroom.avgPerformance.effort.toFixed(2)
+                        : "N/A"}
+                    </MDTypography>
+                    <MDTypography variant="body2">
+                      <strong>Avg. Attendance:</strong>{" "}
+                      {typeof classroom.avgPerformance?.attendance === "number"
+                        ? classroom.avgPerformance.attendance.toFixed(2)
                         : "N/A"}
                     </MDTypography>
                   </MDBox>

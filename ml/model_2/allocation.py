@@ -89,5 +89,7 @@ def allocate_students(
         "Allocations": allocations,
         "AveragePerformance": average_metrics_per_classroom  # <-- now holds all metrics
     }
+
+
     return result
 

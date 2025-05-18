@@ -6,6 +6,7 @@ const VisualizationPage = () => {
   const [graphMap, setGraphMap] = useState({});
   const [selectedNodes, setSelectedNodes] = useState({});
   const [selectedSubgraphKeys, setSelectedSubgraphKeys] = useState({});
+  const [highlightEdges, setHighlightEdges] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -13,12 +14,13 @@ const VisualizationPage = () => {
         const response = await fetch("http://127.0.0.1:5000/cytoscape_subgraphs");
         const data = await response.json();
         setGraphMap(data.subgraphs);
+        console.log("data ", data);
 
-        const classKeys = Object.keys(data.subgraphs).filter((k) => k.startsWith("Classroom_"));
+        const classKeys = Object.keys(data.subgraphs);
 
         const newSelected = {};
         classKeys.forEach((key) => {
-          const base = key.split("_").slice(0, 2).join("_");
+          const base = key.split("_")[0];
           const subKeys = Object.keys(data.subgraphs).filter(
             (k) => k.startsWith(`${base}_`) || k === base
           );
@@ -26,6 +28,7 @@ const VisualizationPage = () => {
             newSelected[base] = subKeys.includes(base) ? base : subKeys[0];
           }
         });
+        console.log("New Selected: ", newSelected);
 
         setSelectedSubgraphKeys(newSelected);
       } catch (error) {
@@ -73,17 +76,22 @@ const VisualizationPage = () => {
     }
   };
 
-  const classrooms = Array.from(
-    new Set(
-      Object.keys(graphMap)
-        .map((k) => k.split("_").slice(0, 2).join("_"))
-        .filter((k) => k.startsWith("Classroom_"))
-    )
-  );
+  const classrooms = Array.from(new Set(Object.keys(graphMap).map((k) => k.split("_")[0])));
+
+  console.log("classrooms: ", classrooms);
 
   return (
     <LayoutWrapper>
       <h2>Multi-Classroom Graphs</h2>
+      <label style={{ marginBottom: "1rem", display: "block" }}>
+        <input
+          type="checkbox"
+          checked={highlightEdges}
+          onChange={(e) => setHighlightEdges(e.target.checked)}
+        />{" "}
+        Highlight edges of selected nodes
+      </label>
+
       {classrooms.map((classroom) => {
         const subgraphKeys = Object.keys(graphMap).filter(
           (k) => k === classroom || k.startsWith(`${classroom}_`)
@@ -94,7 +102,7 @@ const VisualizationPage = () => {
 
         return (
           <div key={classroom} style={{ marginBottom: "40px" }}>
-            <h3>{classroom}</h3>
+            <h3>Class Room: {classroom}</h3>
 
             <label>
               Select Subgraph:&nbsp;
@@ -104,7 +112,9 @@ const VisualizationPage = () => {
               >
                 {subgraphKeys.map((subKey) => (
                   <option key={subKey} value={subKey}>
-                    {subKey === classroom ? "all_connections" : subKey.replace(`${classroom}_`, "")}
+                    {subKey === classroom
+                      ? "all_connections"
+                      : subKey.split("_").slice(1).join("_")}
                   </option>
                 ))}
               </select>
@@ -122,12 +132,28 @@ const VisualizationPage = () => {
                       ...prev,
                       [classroom]: nodeData,
                     }));
+
+                    if (highlightEdges) {
+                      cy.edges().removeClass("highlighted");
+                      cy.edges().forEach((edge) => {
+                        if (
+                          edge.source().id() === nodeData.id ||
+                          edge.target().id() === nodeData.id
+                        ) {
+                          edge.addClass("highlighted");
+                        }
+                      });
+                    }
                   });
+
                   cy.on("tapBlank", () => {
                     setSelectedNodes((prev) => ({
                       ...prev,
                       [classroom]: null,
                     }));
+                    if (highlightEdges) {
+                      cy.edges().removeClass("highlighted");
+                    }
                   });
                 }}
                 stylesheet={[
@@ -145,27 +171,27 @@ const VisualizationPage = () => {
                     },
                   },
                   {
-                    selector: 'node[classroom = "Classroom_1"]',
+                    selector: 'node[classroom = "1"]',
                     style: { "background-color": "#1f77b4" },
                   },
                   {
-                    selector: 'node[classroom = "Classroom_2"]',
+                    selector: 'node[classroom = "2"]',
                     style: { "background-color": "#ff7f0e" },
                   },
                   {
-                    selector: 'node[classroom = "Classroom_3"]',
+                    selector: 'node[classroom = "3"]',
                     style: { "background-color": "#2ca02c" },
                   },
                   {
-                    selector: 'node[classroom = "Classroom_4"]',
+                    selector: 'node[classroom = "4"]',
                     style: { "background-color": "#d62728" },
                   },
                   {
-                    selector: 'node[classroom = "Classroom_5"]',
+                    selector: 'node[classroom = "5"]',
                     style: { "background-color": "#9467bd" },
                   },
                   {
-                    selector: 'node[classroom = "Classroom_6"]',
+                    selector: 'node[classroom = "6"]',
                     style: { "background-color": "#8c564b" },
                   },
                   {
@@ -201,6 +227,20 @@ const VisualizationPage = () => {
                   {
                     selector: 'edge[connection_type = "influential"]',
                     style: { "line-color": "#2ECC40", "target-arrow-color": "#2ECC40" },
+                  },
+                  {
+                    selector: "edge.highlighted",
+                    style: {
+                      "line-color": "#FFD700",
+                      "target-arrow-color": "#FFD700",
+                      "line-style": "solid",
+                      width: 4,
+                      "shadow-blur": 10,
+                      "shadow-color": "#FFD700",
+                      "shadow-opacity": 0.8,
+                      "shadow-offset-x": 0,
+                      "shadow-offset-y": 0,
+                    },
                   },
                 ]}
               />

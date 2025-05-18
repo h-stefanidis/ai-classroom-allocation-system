@@ -77,8 +77,6 @@ def run_samsun_model_pipeline():
 
 # run_samsun_model_pipeline()
 
-<<<<<<< HEAD
-
 @cross_origin(origin='http://localhost:3000')
 @pipeline_bp.route("/cytoscape_subgraphs", methods=['GET'])  
 def cytoscape_subgraphs():
@@ -108,7 +106,7 @@ def update_classroom_allocations():
         update_values = []
         for classroom_label, student_ids in allocations.items():
             try:
-                classroom_id = int(classroom_label.split("_")[1])  # e.g., "Classroom_3" -> 3
+                classroom_id = int(classroom_label)  # e.g., "Classroom_3" -> 3
             except (IndexError, ValueError):
                 return jsonify({"error": f"Invalid classroom format: {classroom_label}"}), 400
 
@@ -128,7 +126,7 @@ def update_classroom_allocations():
         import traceback
         traceback.print_exc()
         return jsonify({"error": f"Server error: {str(e)}"}), 500
-=======
+
 @pipeline_bp.route("/run_model2", methods=['GET'])
 def run_model2_route():
     """
@@ -174,4 +172,3 @@ def run_random_allocation():
 
 
 
->>>>>>> f50ae4a424232c8476de2cecd9cd2801bfc3d1f5

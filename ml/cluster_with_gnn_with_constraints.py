@@ -135,3 +135,221 @@ def cluster_students_with_gnn(graph, num_clusters):
         return clustered_data, graph
 
     raise RuntimeError("Clustering failed: No feasible solution found.")
+
+
+def cluster_students_with_gnn_with_user_input(graph, num_clusters, relationship_weights):
+    if relationship_weights is None:
+        relationship_weights = {
+            "friend": 1.0, "influence": 1.0, "feedback": 1.0,
+            "more_time": 1.0, "advice": 1.0, "disrespect": 0.0
+        }
+
+    edge_type_mapping = {
+        0: "friend", 1: "influence", 2: "feedback",
+        3: "more_time", 4: "advice", 5: "disrespect"
+    }
+
+    model = ImprovedClassForgeGNN(
+        in_channels=graph.num_node_features,
+        hidden_channels=32,
+        embedding_size=16,
+        num_relations=len(set(graph.edge_type.tolist()))
+    )
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+    model.train()
+    for epoch in range(200):
+        optimizer.zero_grad()
+        embeddings = model(graph.x, graph.edge_index, graph.edge_type)
+        loss = embeddings.norm(p=2).mean()
+        loss.backward()
+        optimizer.step()
+
+    model.eval()
+    with torch.no_grad():
+        embeddings = model(graph.x, graph.edge_index, graph.edge_type).cpu().numpy()
+
+    num_students = embeddings.shape[0]
+    kmeans = KMeans(n_clusters=num_clusters, random_state=42)
+    preferred_clusters = kmeans.fit_predict(embeddings)
+
+    model_cp = cp_model.CpModel()
+    assignments = [model_cp.NewIntVar(1, num_clusters, f"student_{i}") for i in range(num_students)]
+
+    # Balanced class sizes
+    base = num_students // num_clusters
+    remainder = num_students % num_clusters
+    min_per_class = base
+    max_per_class = base + 1 if remainder > 0 else base
+
+    for c in range(1, num_clusters + 1):
+        class_members = []
+        for i in range(num_students):
+            is_in_class = model_cp.NewBoolVar(f"is_{i}_in_class_{c}")
+            model_cp.Add(assignments[i] == c).OnlyEnforceIf(is_in_class)
+            model_cp.Add(assignments[i] != c).OnlyEnforceIf(is_in_class.Not())
+            class_members.append(is_in_class)
+        model_cp.Add(sum(class_members) >= min_per_class)
+        model_cp.Add(sum(class_members) <= max_per_class)
+
+    match_vars = []
+    for i in range(num_students):
+        match = model_cp.NewBoolVar(f"match_{i}")
+        model_cp.Add(assignments[i] == (preferred_clusters[i] + 1)).OnlyEnforceIf(match)
+        model_cp.Add(assignments[i] != (preferred_clusters[i] + 1)).OnlyEnforceIf(match.Not())
+        match_vars.append(match)
+
+    # Objective terms (positive or negative)
+    positive_terms = []
+    negative_terms = []
+
+    for idx in range(graph.edge_index.shape[1]):
+        src, tgt = graph.edge_index[:, idx].tolist()
+        rel = int(graph.edge_type[idx])
+        rel_name = edge_type_mapping.get(rel, None)
+        weight = relationship_weights.get(rel_name, 0.0)
+
+        same_class = model_cp.NewBoolVar(f"same_class_{src}_{tgt}")
+        model_cp.Add(assignments[src] == assignments[tgt]).OnlyEnforceIf(same_class)
+        model_cp.Add(assignments[src] != assignments[tgt]).OnlyEnforceIf(same_class.Not())
+
+        if weight != 0:
+            scaled_same = model_cp.NewIntVar(-1000, 1000, f"scaled_{src}_{tgt}")
+            model_cp.AddMultiplicationEquality(scaled_same, [same_class, int(abs(weight * 1000))])
+            if weight > 0:
+                positive_terms.append(scaled_same)
+            else:
+                negative_terms.append(scaled_same)
+
+    # Final objective
+    model_cp.Maximize(
+        sum(match_vars) +
+        sum(positive_terms) -
+        sum(negative_terms)
+    )
+
+    solver = cp_model.CpSolver()
+    solver.parameters.max_time_in_seconds = 60
+    status = solver.Solve(model_cp)
+
+    if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
+        final_assignments = [solver.Value(assignments[i]) for i in range(num_students)]
+        cluster_labels = torch.tensor(final_assignments, dtype=torch.long)
+
+        clustered_data = Data(
+            x=graph.x,
+            edge_index=graph.edge_index,
+            edge_type=graph.edge_type,
+            y=cluster_labels
+        )
+        if hasattr(graph, "participant_ids"):
+            clustered_data.participant_ids = graph.participant_ids
+        return clustered_data, graph
+
+    raise RuntimeError("Clustering failed: No feasible solution found.")
+
+# def cluster_students_with_gnn_with_user_input(graph, num_clusters, relationship_weights):
+#     if relationship_weights is None:
+#         relationship_weights = {"friend": 1.0, "influence": 1.0, "feedback": 1.0, "more_time": 1.0, "advice": 1.0, "disrespect": 0.0}
+
+#     # Edge type mapping (must match how edge_type int maps to names in graph)
+#     edge_type_mapping = {
+#         0: "friend",
+#         1: "influence",
+#         2: "feedback",
+#         3: "more_time",
+#         4: "advice",
+#         5: "disrespect"
+#     }
+
+#     model = ImprovedClassForgeGNN(
+#         in_channels=graph.num_node_features,
+#         hidden_channels=32,
+#         embedding_size=16,
+#         num_relations=len(set(graph.edge_type.tolist()))
+#     )
+
+#     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+#     model.train()
+
+#     for epoch in range(200):
+#         optimizer.zero_grad()
+#         embeddings = model(graph.x, graph.edge_index, graph.edge_type)
+#         loss = embeddings.norm(p=2).mean()
+#         loss.backward()
+#         optimizer.step()
+
+#     model.eval()
+#     with torch.no_grad():
+#         embeddings = model(graph.x, graph.edge_index, graph.edge_type).cpu().numpy()
+
+#     num_students = embeddings.shape[0]
+#     kmeans = KMeans(n_clusters=num_clusters, random_state=42)
+#     preferred_clusters = kmeans.fit_predict(embeddings)
+
+#     model_cp = cp_model.CpModel()
+#     assignments = [model_cp.NewIntVar(1, num_clusters, f"student_{i}") for i in range(num_students)]
+
+#     base = num_students // num_clusters
+#     remainder = num_students % num_clusters
+#     min_per_class = base
+#     max_per_class = base + 1 if remainder > 0 else base
+
+#     for c in range(1, num_clusters + 1):
+#         class_members = []
+#         for i in range(num_students):
+#             is_in_class = model_cp.NewBoolVar(f"is_{i}_in_class_{c}")
+#             model_cp.Add(assignments[i] == c).OnlyEnforceIf(is_in_class)
+#             model_cp.Add(assignments[i] != c).OnlyEnforceIf(is_in_class.Not())
+#             class_members.append(is_in_class)
+#         model_cp.Add(sum(class_members) >= min_per_class)
+#         model_cp.Add(sum(class_members) <= max_per_class)
+
+#     match_vars = []
+#     for i in range(num_students):
+#         match = model_cp.NewBoolVar(f"match_{i}")
+#         model_cp.Add(assignments[i] == (preferred_clusters[i] + 1)).OnlyEnforceIf(match)
+#         model_cp.Add(assignments[i] != (preferred_clusters[i] + 1)).OnlyEnforceIf(match.Not())
+#         match_vars.append(match)
+
+#     bonus_vars = []
+
+#     for idx in range(graph.edge_index.shape[1]):
+#         src, tgt = graph.edge_index[:, idx].tolist()
+#         rel = int(graph.edge_type[idx])
+#         rel_name = edge_type_mapping.get(rel, None)
+#         weight = relationship_weights.get(rel_name, 0.0)
+
+#         same_class = model_cp.NewBoolVar(f"same_class_{src}_{tgt}")
+#         model_cp.Add(assignments[src] == assignments[tgt]).OnlyEnforceIf(same_class)
+#         model_cp.Add(assignments[src] != assignments[tgt]).OnlyEnforceIf(same_class.Not())
+
+#         if weight > 0:
+#             # Multiply same_class by weight
+#             scaled_same = model_cp.NewIntVar(0, int(weight * 1000), f"scaled_{src}_{tgt}")
+#             model_cp.AddMultiplicationEquality(scaled_same, [same_class, int(weight * 1000)])
+#             bonus_vars.append(scaled_same)
+
+#     # Maximize weighted preferences + clustering match
+#     model_cp.Maximize(sum(match_vars) + sum(bonus_vars))
+
+#     solver = cp_model.CpSolver()
+#     solver.parameters.max_time_in_seconds = 60
+#     status = solver.Solve(model_cp)
+
+#     if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
+#         final_assignments = [solver.Value(assignments[i]) for i in range(num_students)]
+#         cluster_labels = torch.tensor(final_assignments, dtype=torch.long)
+
+#         clustered_data = Data(
+#             x=graph.x,
+#             edge_index=graph.edge_index,
+#             edge_type=graph.edge_type,
+#             y=cluster_labels
+#         )
+#         if hasattr(graph, "participant_ids"):
+#             clustered_data.participant_ids = graph.participant_ids
+
+#         return clustered_data, graph
+
+#     raise RuntimeError("Clustering failed: No feasible solution found.")

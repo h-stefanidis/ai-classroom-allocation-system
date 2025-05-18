@@ -61,9 +61,7 @@ function AllocationPage() {
   }, []);
 
   const fetchAndInjectPsychometrics = async (runNumber, classroomMap) => {
-    const statsRes = await fetch(
-      `http://127.0.0.1:5000/psychometrics-stats-normalized?run_number=${runNumber}`
-    );
+    const statsRes = await fetch(`http://127.0.0.1:5000/psychometrics-stats-normalized`);
     const statsData = await statsRes.json();
 
     statsData.psychometrics_by_classroom_normalized.forEach((entry) => {

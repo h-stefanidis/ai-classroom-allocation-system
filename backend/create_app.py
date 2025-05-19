@@ -49,18 +49,23 @@ def createApp(config_class=Config):
     from app.routes.main import pipeline_bp
     # from app.routes.run_numbers import allocation_bp
     from app.routes.realtionship_summary import relationship_bp
-    from upload_file.routes import upload_excel_bp
+    # from upload_file.routes import upload_excel_bp
+    from upload_file.routes import upload_bp
     from app.routes.main import main_bp
     from app.routes.statistical_anly import stats_bp
     from app.routes.realtionship_summary import relationship_bp
     from app.routes.student_sna_anly import sna_bp
+    #from app.routes.sna_by_run import sna_bp
 
     app.register_blueprint(users_bp)
     app.register_blueprint(pipeline_bp)
     app.register_blueprint(file_handler_bp)
     app.register_blueprint(relationship_bp)
     # app.register_blueprint(allocation_bp)
-    app.register_blueprint(upload_excel_bp)
+    app.register_blueprint(upload_bp)
+      
+   
+   
     app.register_blueprint(main_bp)
     app.register_blueprint(stats_bp)
     app.register_blueprint(sna_bp)

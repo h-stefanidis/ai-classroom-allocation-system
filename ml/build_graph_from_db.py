@@ -66,11 +66,12 @@ def build_graph_from_db(db,cohort=None):
         FROM raw.participants
         """ + (f" WHERE cohort = '{cohort}'" if cohort else "")
     participants = db.query_df(participants_query)
+    print(participants,"-------------")
+
     participants["participant_id"] = participants["participant_id"].astype(int)
 
     id_to_index = {pid: idx for idx, pid in enumerate(participants["participant_id"])}
     num_nodes = len(participants)
-
     # === Feature processing ===
     feature_cols = ["perc_effort", "attendance", "perc_academic", "complete_years"]
     if "house" in participants.columns:

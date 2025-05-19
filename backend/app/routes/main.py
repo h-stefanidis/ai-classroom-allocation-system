@@ -3,6 +3,8 @@ from flask_cors import cross_origin
 import os
 import uuid
 import torch
+from torch_geometric.data import Data
+
 
 # Database and ML imports
 from db.db_manager import get_db
@@ -218,3 +220,80 @@ def group_relationship_summary():
         "avg_behavior_rating": 4.1
     }
     return jsonify(summary)
+
+
+@pipeline_bp.route("/manual_reallocate_student", methods=["POST"])
+def reallocate_student():
+    """
+    Reassign a student from one classroom to another and update all relevant records.
+    Request Body:
+    {
+        "participant_id": 12345,
+        "from_classroom_id": 1,
+        "to_classroom_id": 2,
+        "run_number": "abc-uuid"
+    }
+    """
+    data = request.get_json()
+    participant_id = data.get("participant_id")
+    from_classroom_id = data.get("from_classroom_id")
+    to_classroom_id = data.get("to_classroom_id")
+    run_number = data.get("run_number")
+
+    db = get_db()
+
+    # 1. Fetch existing allocation for validation
+    current_alloc = db.query_df("""
+        SELECT * FROM public.classroom_allocation
+        WHERE run_number = %s AND participant_id = %s AND classroom_id = %s::text
+    """, (run_number, participant_id, str(from_classroom_id)))
+
+    if current_alloc.empty:
+        return jsonify({"error": "Invalid reallocation request. Student not found in specified group."}), 400
+
+    # 2. Fetch all allocations from the given run_number
+    all_alloc = db.query_df("""
+        SELECT classroom_id, participant_id
+        FROM public.classroom_allocation
+        WHERE run_number = %s
+    """, (run_number,))
+
+
+    all_alloc["classroom_id"] = all_alloc["classroom_id"].astype(str)
+    to_classroom_id = str(to_classroom_id)
+    # 3. Modify the allocation
+    all_alloc.loc[
+        (all_alloc["participant_id"] == participant_id),
+        "classroom_id"
+    ] = to_classroom_id
+
+    # 4. Group allocations by classroom
+    grouped = all_alloc.groupby("classroom_id")["participant_id"].apply(list).to_dict()
+    json_data = {
+        "Total_Students": len(all_alloc),
+        "Total_Classrooms": len(grouped),
+        "Allocations": {f"{cid}": plist for cid, plist in grouped.items()}
+    }
+
+    # 5. Save new run with updated allocations
+    new_run_number = save_allocations_to_db(db, json_data)
+    db= get_db()
+    # 6. Rebuild preserved relationships and edges
+    graph = build_graph_from_db(db, cohort=2025)  # or make cohort dynamic
+    clustered_data = Data(
+        x=graph.x,
+        edge_index=graph.edge_index,
+        edge_type=graph.edge_type,
+        y=torch.tensor(all_alloc["classroom_id"].astype(int).values)  # Must be in correct order
+    )
+    clustered_data.participant_ids = all_alloc["participant_id"].tolist()
+    print()
+
+    compute_preserved_relationships(db, clustered_data, new_run_number)
+    save_edge_relationships_db(db, clustered_data, new_run_number, clustered_data.participant_ids)
+
+    return jsonify({
+        "message": "Reallocation successful",
+        "new_run_number": new_run_number
+    })
+

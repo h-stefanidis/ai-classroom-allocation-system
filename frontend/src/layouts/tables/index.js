@@ -38,6 +38,7 @@ function AllocationPage() {
   const [insightClassroom, setInsightClassroom] = useState(null);
   const [selectedOption, setSelectedOption] = useState("perc_academic");
   const [lastRunNumber, setLastRunNumber] = useState(null);
+  const [relationshipCounts, setRelationshipCounts] = useState({});
 
   useEffect(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -102,6 +103,16 @@ function AllocationPage() {
     });
   };
 
+  const fetchRelationshipCounts = async () => {
+    try {
+      const relRes = await fetch("http://127.0.0.1:5000/fetch_relationship");
+      const relData = await relRes.json();
+      setRelationshipCounts(relData.relationship_counts || {});
+    } catch (err) {
+      setRelationshipCounts({});
+    }
+  };
+
   const handleFetchAllocation = async () => {
     setLoading(true);
     try {
@@ -150,55 +161,14 @@ function AllocationPage() {
           localStorage.setItem(`${selectedModel}_lastRunNumber`, data.run_number);
           setLastRunNumber(data.run_number);
 
-          if (data.run_number !== undefined) {
-            localStorage.setItem(`${selectedModel}_lastRunNumber`, data.run_number);
-            setLastRunNumber(data.run_number);
-
-            // ✅ Call the helper
-            await fetchAndInjectPsychometrics(data.run_number, classroomMap);
-          }
-
-          // Inject key stats into classroomMap
-          statsData.psychometrics_by_classroom_normalized.forEach((entry) => {
-            const id = entry.classroom_id;
-            if (classroomMap[id]) {
-              classroomMap[id].psychometrics = {
-                growth_mindset: entry.growth_mindset,
-                comfortable: entry.comfortable,
-                isolated: entry.isolated,
-                criticises: entry.criticises,
-                manbox5_overall: entry.manbox5_overall,
-                wellbeing: entry.pwi_wellbeing,
-              };
-            }
-          });
-
-          statsData.relationship_preservation.friend.forEach((entry) => {
-            const id = entry.classroom_id;
-            if (classroomMap[id]) {
-              classroomMap[id].relationships = {
-                friendsPreserved: entry.percentage,
-              };
-            }
-          });
-
-          statsData.relationship_preservation.advice.forEach((entry) => {
-            const id = entry.classroom_id;
-            if (classroomMap[id]) {
-              classroomMap[id].relationships.advicePreserved = entry.percentage;
-            }
-          });
-
-          statsData.relationship_preservation.influence.forEach((entry) => {
-            const id = entry.classroom_id;
-            if (classroomMap[id]) {
-              classroomMap[id].relationships.influencePreserved = entry.percentage;
-            }
-          });
+          // Fetch and inject statsData here
+          await fetchAndInjectPsychometrics(data.run_number, classroomMap);
         }
       }
 
       setAllocatedClassrooms(Object.values(classroomMap));
+      await fetchRelationshipCounts();
+
       setSnack({
         open: true,
         message: `Allocations loaded successfully! ${
@@ -474,16 +444,34 @@ function AllocationPage() {
             {insightClassroom ? (
               <Grid container spacing={2}>
                 <Grid item xs={12} md={4}>
-                  <MDTypography variant="subtitle2">Disrespect Incidents:</MDTypography>
-                  <MDTypography>{insightClassroom.disrespect}</MDTypography>
+                  <MDTypography variant="subtitle2">Disrespect Links:</MDTypography>
+                  <MDTypography>
+                    {relationshipCounts[insightClassroom.id]?.disrespect ?? "N/A"}
+                  </MDTypography>
                 </Grid>
                 <Grid item xs={12} md={4}>
                   <MDTypography variant="subtitle2">Friendships:</MDTypography>
-                  <MDTypography>{insightClassroom.friendships}</MDTypography>
+                  <MDTypography>
+                    {relationshipCounts[insightClassroom.id]?.friends ?? "N/A"}
+                  </MDTypography>
                 </Grid>
                 <Grid item xs={12} md={4}>
-                  <MDTypography variant="subtitle2">Influence Score:</MDTypography>
-                  <MDTypography>{insightClassroom.influence}</MDTypography>
+                  <MDTypography variant="subtitle2">Advice Links:</MDTypography>
+                  <MDTypography>
+                    {relationshipCounts[insightClassroom.id]?.advice ?? "N/A"}
+                  </MDTypography>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <MDTypography variant="subtitle2">Feedback Links:</MDTypography>
+                  <MDTypography>
+                    {relationshipCounts[insightClassroom.id]?.feedback ?? "N/A"}
+                  </MDTypography>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <MDTypography variant="subtitle2">Influential Links:</MDTypography>
+                  <MDTypography>
+                    {relationshipCounts[insightClassroom.id]?.influential ?? "N/A"}
+                  </MDTypography>
                 </Grid>
                 <Grid item xs={12}>
                   <MDTypography variant="subtitle2">Student Count:</MDTypography>

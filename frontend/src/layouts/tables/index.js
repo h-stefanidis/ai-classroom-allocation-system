@@ -52,6 +52,7 @@ function AllocationPage() {
     { label: "Model with Relationship Pref", value: "relationship_pref" },
     { label: "Model 3", value: "model3" },
   ];
+  const [relationshipCounts, setRelationshipCounts] = useState({});
 
   useEffect(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -115,6 +116,16 @@ function AllocationPage() {
     });
   };
 
+  const fetchRelationshipCounts = async () => {
+    try {
+      const relRes = await fetch("http://127.0.0.1:5000/fetch_relationship");
+      const relData = await relRes.json();
+      setRelationshipCounts(relData.relationship_counts || {});
+    } catch (err) {
+      setRelationshipCounts({});
+    }
+  };
+
   const handleFetchAllocation = async () => {
     setLoading(true);
     try {
@@ -172,6 +183,8 @@ function AllocationPage() {
       }
 
       setAllocatedClassrooms(Object.values(classroomMap));
+      await fetchRelationshipCounts();
+
       setSnack({
         open: true,
         message: `Allocations loaded successfully! ${
@@ -481,16 +494,34 @@ function AllocationPage() {
             {insightClassroom ? (
               <Grid container spacing={2}>
                 <Grid item xs={12} md={4}>
-                  <MDTypography variant="subtitle2">Disrespect Incidents:</MDTypography>
-                  <MDTypography>{insightClassroom.disrespect}</MDTypography>
+                  <MDTypography variant="subtitle2">Disrespect Links:</MDTypography>
+                  <MDTypography>
+                    {relationshipCounts[insightClassroom.id]?.disrespect ?? "N/A"}
+                  </MDTypography>
                 </Grid>
                 <Grid item xs={12} md={4}>
                   <MDTypography variant="subtitle2">Friendships:</MDTypography>
-                  <MDTypography>{insightClassroom.friendships}</MDTypography>
+                  <MDTypography>
+                    {relationshipCounts[insightClassroom.id]?.friends ?? "N/A"}
+                  </MDTypography>
                 </Grid>
                 <Grid item xs={12} md={4}>
-                  <MDTypography variant="subtitle2">Influence Score:</MDTypography>
-                  <MDTypography>{insightClassroom.influence}</MDTypography>
+                  <MDTypography variant="subtitle2">Advice Links:</MDTypography>
+                  <MDTypography>
+                    {relationshipCounts[insightClassroom.id]?.advice ?? "N/A"}
+                  </MDTypography>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <MDTypography variant="subtitle2">Feedback Links:</MDTypography>
+                  <MDTypography>
+                    {relationshipCounts[insightClassroom.id]?.feedback ?? "N/A"}
+                  </MDTypography>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <MDTypography variant="subtitle2">Influential Links:</MDTypography>
+                  <MDTypography>
+                    {relationshipCounts[insightClassroom.id]?.influential ?? "N/A"}
+                  </MDTypography>
                 </Grid>
                 <Grid item xs={12}>
                   <MDTypography variant="subtitle2">Student Count:</MDTypography>
@@ -522,5 +553,4 @@ function AllocationPage() {
     </DashboardLayout>
   );
 }
-
 export default AllocationPage;

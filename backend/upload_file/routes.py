@@ -1,46 +1,53 @@
 from flask import Blueprint, request, jsonify
+import os
 import pandas as pd
 
-upload_excel_bp = Blueprint('upload_excel_bp', __name__)
+upload_bp = Blueprint('upload', __name__)
+UPLOAD_FOLDER = "uploads"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-@upload_excel_bp.route('/upload-excel', methods=['POST'])
+@upload_bp.route('/upload-excel', methods=['POST'])
 def upload_excel():
-    print("📥 Route hit!")
-
-    # Debugging Info
-    print("📬 Headers:", dict(request.headers))
-    print("📬 Form keys:", request.form)
-    print("📬 Files keys:", request.files)
-
-    file = request.files.get('file')
-    cohort = request.args.get('cohort')
-
-    print("📥 cohort =", cohort)
-    print("📥 file =", file.filename if file else None)
-
-    if not file:
-        return jsonify({'error': 'No file part'}), 400
+    # ✅ Get cohort from form
+    cohort = request.form.get("cohort")
     if not cohort:
-        return jsonify({'error': 'Missing cohort parameter'}), 400
+        return jsonify({"error": "Missing cohort value"}), 400
 
     try:
-        # Support both Excel and CSV
-        if file.filename.endswith('.xlsx') or file.filename.endswith('.xls'):
-            df = pd.read_excel(file)
-        elif file.filename.endswith('.csv'):
-            df = pd.read_csv(file)
-        else:
-            return jsonify({'error': 'Unsupported file format'}), 400
+        cohort = int(cohort)
+    except ValueError:
+        return jsonify({"error": "Invalid cohort value, must be an integer"}), 400
 
-        df['cohort'] = cohort
-        print("📊 Uploaded Data:", df.head(2))
+    # ✅ Check file part
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part in the request"}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No file selected"}), 400
+
+    if not file.filename.endswith(('.xls', '.xlsx')):
+        return jsonify({"error": "Invalid file type. Please upload an Excel file."}), 400
+
+    try:
+        filepath = os.path.join(UPLOAD_FOLDER, file.filename)
+        file.save(filepath)
+
+        # ✅ Read Excel safely
+        try:
+            df = pd.read_excel(filepath)
+        except Exception as e:
+            return jsonify({"error": f"Failed to read Excel file: {str(e)}"}), 400
+
+        # ✅ Add cohort column
+        df["Cohort"] = cohort
 
         return jsonify({
-            'message': 'Upload successful',
-            'cohort': cohort,
-            'preview': df.head(2).to_dict(orient='records')
-        })
+            "message": "File uploaded successfully",
+            "rows": len(df),
+            "columns": list(df.columns),
+            "cohort": cohort
+        }), 200
 
     except Exception as e:
-        print("❌ Upload error:", str(e))
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": f"Unexpected error: {str(e)}"}), 500

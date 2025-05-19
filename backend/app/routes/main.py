@@ -4,6 +4,7 @@ import os
 import uuid
 import torch
 from torch_geometric.data import Data
+from collections import defaultdict
 
 
 # Database and ML imports
@@ -40,6 +41,7 @@ from ml.model_2.allocation import allocate_students
 from ml.model_2.convert_data_into_graph_cluster import convert_data_in_graph_cluster
 from ml.model_2.random_allocator import random_classroom_allocator
 from ml.model_2.graph_splitting import attach_names_to_graph, get_split_graphs
+from ml.model_2.utils import relationship_counts_per_class
 
 pipeline_bp = Blueprint("pipeline", __name__)
 main_bp = Blueprint("main_bp", __name__)
@@ -315,3 +317,6 @@ def reallocate_student():
         "new_run_number": new_run_number
     })
 
+@main_bp.route("/fetch_relationship", methods=["GET"])
+def fetch_relationship():
+    return relationship_counts_per_class()

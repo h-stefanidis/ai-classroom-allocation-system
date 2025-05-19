@@ -57,6 +57,7 @@ def run_samsun_model_pipeline():
     save_edge_relationships_db(db, clustered_data, full_json_dict["Run_Number"], participant_ids)
     return jsonify(full_json_dict)
 
+
 @pipeline_bp.route("/get_allocation_by_user_preference", methods=['POST'])
 @cross_origin(origin='http://localhost:3000')
 def get_allocation_by_user_preference_model1():
@@ -117,13 +118,6 @@ def update_classroom_allocations():
 
 @pipeline_bp.route("/run_model2", methods=['GET'])
 def run_model2_route():
-    """
-    Run the Model 2 pipeline: construct graph, convert to PyG, run GNN, allocate students.
-    Expects query parameters:
-      - 'classroomCount' (int): number of classrooms
-      - 'cohort' (int or str): student cohort
-      - 'option' (str): which constraint to weight ('perc_academic', 'perc_effort', or 'perc_attendance')
-    """
     # Get query parameters
     num_allocations = int(request.args.get('classroomCount', 4))  # default to 4
     cohort = request.args.get('cohort', 2025)                     # default to 2025

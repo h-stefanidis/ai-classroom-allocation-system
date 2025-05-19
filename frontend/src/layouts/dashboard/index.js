@@ -1,15 +1,12 @@
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 import Grid from "@mui/material/Grid";
 import Card from "@mui/material/Card";
-
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
-
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
 import ComplexStatisticsCard from "examples/Cards/StatisticsCards/ComplexStatisticsCard";
-import VisualizationSection from "components/VisualizationSection";
-
-// Charts
 import {
   LineChart,
   Line,
@@ -18,47 +15,121 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Legend,
+  BarChart,
+  Bar,
+  LabelList
 } from "recharts";
 
-// Dummy chart data (overview trend)
-const chartData = [
-  { name: "Week 1", students: 40 },
-  { name: "Week 2", students: 45 },
-  { name: "Week 3", students: 50 },
-  { name: "Week 4", students: 47 },
-  { name: "Week 5", students: 53 },
-];
-
 export default function Dashboard() {
+  const [chartData, setChartData] = useState([]);
+  const [summary, setSummary] = useState({});
+  const [snaByClass, setSnaByClass] = useState([]);
+  const [betweennessBars, setBetweennessBars] = useState([]);
+  const [relationshipDensity, setRelationshipDensity] = useState([]);
+
+  useEffect(() => {
+    axios.get("http://localhost:5000/allocation-runs").then((res) => {
+      const runs = res.data.runs || [];
+      const formatted = runs.map((run, index) => ({
+        name: `Run ${index + 1}`,
+        students: 45 - index * 5, // Placeholder
+      }));
+      setChartData(formatted);
+    });
+
+    axios.get("http://localhost:5000/group-relationship-summary").then((res) => {
+      setSummary(res.data);
+    });
+
+    axios.get("http://localhost:5000/sna_by_run_number").then((res) => {
+      const data = res.data;
+
+      const lineData = data.map(item => ({
+        classroom_id: `Class ${item.classroom_id}`,
+        num_edges: item.num_edges,
+        num_nodes: item.num_nodes
+      }));
+      setSnaByClass(lineData);
+
+      const bars = [];
+      data.forEach(item => {
+        item.top_betweenness.forEach(node => {
+          bars.push({
+            classroom: `Class ${item.classroom_id}`,
+            name: node.name,
+            value: node.value
+          });
+        });
+      });
+      setBetweennessBars(bars);
+    });
+
+    axios.get("http://localhost:5000/sna_by_run_number_in_types_of_relationship").then((res) => {
+      const json = res.data;
+      const result = [];
+
+      Object.keys(json).forEach((type) => {
+        const entries = json[type];
+        if (entries.length > 0) {
+          const totalEdges = entries.reduce((sum, entry) => sum + entry.num_edges, 0);
+          const totalNodes = entries.reduce((sum, entry) => sum + entry.num_nodes, 0);
+          const count = entries.length;
+          result.push({
+            relationship_type: type,
+            avg_edges: +(totalEdges / count).toFixed(2),
+            avg_nodes: +(totalNodes / count).toFixed(2)
+          });
+        }
+      });
+
+      setRelationshipDensity(result);
+    });
+  }, []);
+
   return (
     <DashboardLayout>
       <DashboardNavbar />
       <MDBox py={3}>
-        {/* 🔹 Summary Cards */}
         <Grid container spacing={3}>
-          <Grid item xs={12} md={6} lg={6}>
+          <Grid item xs={12} md={6} lg={3}>
             <ComplexStatisticsCard
-              icon="track_changes"
-              title="Allocations Processed"
-              count="12"
-              percentage={{ color: "success", label: "last 24 hours" }}
+              icon="people"
+              title="Friendship Retained"
+              count={summary.avg_friendship_retained || "-"}
+              percentage={{ color: "success", label: "cohort avg" }}
             />
           </Grid>
-          <Grid item xs={12} md={6} lg={6}>
+          <Grid item xs={12} md={6} lg={3}>
             <ComplexStatisticsCard
-              icon="hub"
-              title="Visualization Active"
-              count="5 Networks"
-              percentage={{ color: "info", label: "updated live" }}
+              icon="psychology"
+              title="Engagement"
+              count={summary.avg_engagement_score || "-"}
+              percentage={{ color: "info", label: "survey derived" }}
+            />
+          </Grid>
+          <Grid item xs={12} md={6} lg={3}>
+            <ComplexStatisticsCard
+              icon="verified"
+              title="Stability"
+              count={summary.avg_stability || "-"}
+              percentage={{ color: "warning", label: "network metric" }}
+            />
+          </Grid>
+          <Grid item xs={12} md={6} lg={3}>
+            <ComplexStatisticsCard
+              icon="insights"
+              title="Behavior Rating"
+              count={summary.avg_behavior_rating || "-"}
+              percentage={{ color: "secondary", label: "scale 1–5" }}
             />
           </Grid>
         </Grid>
 
-        {/* 📈 Overview Line Chart */}
-        <MDBox mt={4}>
+        {/* <MDBox mt={4}>
           <Card sx={{ p: 3 }}>
             <MDTypography variant="h5" fontWeight="medium" gutterBottom>
-              Weekly Student Allocation Trend
+              Allocation Runs
             </MDTypography>
             <MDBox mt={3} height={300}>
               <ResponsiveContainer width="100%" height="100%">
@@ -78,41 +149,70 @@ export default function Dashboard() {
               </ResponsiveContainer>
             </MDBox>
           </Card>
-        </MDBox>
+        </MDBox> */}
 
-        {/* 🧠 Allocation Visualization */}
         <MDBox mt={4}>
           <Card sx={{ p: 3 }}>
             <MDTypography variant="h5" fontWeight="medium" gutterBottom>
-              Classroom Allocation Network
+              Network Density per Classroom
             </MDTypography>
-            <MDBox
-              sx={{
-                overflowX: "auto",
-                maxWidth: "100%",
-                border: "1px solid #e0e0e0",
-                borderRadius: "8px",
-                p: 2,
-                mt: 2,
-              }}
-            >
-              <VisualizationSection />
-            </MDBox>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={snaByClass}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="classroom_id" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="num_edges" stroke="#8884d8" name="Edges" />
+                <Line type="monotone" dataKey="num_nodes" stroke="#82ca9d" name="Nodes" />
+              </LineChart>
+            </ResponsiveContainer>
           </Card>
         </MDBox>
 
-        {/* 📘 Justification Section */}
         <MDBox mt={4}>
           <Card sx={{ p: 3 }}>
             <MDTypography variant="h5" fontWeight="medium" gutterBottom>
-              AI Allocation Justification
+              Top 5 Betweenness Centrality (per Classroom)
             </MDTypography>
-            <MDTypography variant="body2" color="text">
-              This visualization shows optimized classroom groupings based on academic performance,
-              social bonding, and wellbeing metrics. Students were clustered to improve retention
-              and reduce negative interaction patterns. Adjustments are ongoing as new data is
-              processed.
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart
+                layout="vertical"
+                data={betweennessBars}
+                margin={{ top: 20, right: 30, left: 100, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis type="number" />
+                <YAxis dataKey="name" type="category" />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="value" fill="#1976d2" name="Betweenness">
+                  <LabelList dataKey="classroom" position="right" />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </Card>
+        </MDBox>
+
+        <MDBox mt={4}>
+          <Card sx={{ p: 3 }}>
+            <MDTypography variant="h5" fontWeight="medium" gutterBottom>
+              Network Density by Relationship Type
             </MDTypography>
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart
+                data={relationshipDensity}
+                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="relationship_type" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="avg_edges" fill="#82ca9d" name="Avg Edges" />
+                <Bar dataKey="avg_nodes" fill="#8884d8" name="Avg Nodes" />
+              </BarChart>
+            </ResponsiveContainer>
           </Card>
         </MDBox>
       </MDBox>

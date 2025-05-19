@@ -1,10 +1,8 @@
 import json
 from collections import defaultdict
 import networkx as nx
-import random;
-import pandas as pd
-
 import random
+import pandas as pd
 
 # Fixed color palettes
 CLASSROOM_COLORS = [
@@ -13,10 +11,11 @@ CLASSROOM_COLORS = [
 
 EDGE_TYPE_COLOR_MAP = {
     0: "#1f77b4",  # friends - blue
-    1: "#ff7f0e",  # advice - orange
-    2: "#d62728",  # disrespect - red
-    3: "#2ca02c",  # feedback - green
-    4: "#9467bd",  # influential - purple
+    1: "#ff7f0e",  # influential - orange
+    2: "#2ca02c",  # feedback - green
+    3: "#d62728",  # more_time - red
+    4: "#9467bd",  # advice - purple
+    5: "#8c564b",  # disrespect - brown
 }
 
 def attach_names_to_graph(graph: nx.DiGraph, df: pd.DataFrame) -> None:
@@ -34,7 +33,7 @@ def attach_names_to_graph(graph: nx.DiGraph, df: pd.DataFrame) -> None:
             graph.nodes[pid]["last_name"] = row["last_name"]
 
 def get_split_graphs(graph: nx.DiGraph, allocations: dict) -> dict:
-    edge_type_map = {0: 'friends', 1: 'advice', 2: 'disrespect', 3: 'feedback', 4: 'influential'}
+    edge_type_map = {0: 'friends', 1: 'influential', 2: 'feedback', 3: 'more_time', 4: 'advice', 5: 'disrespect'}
     data = {}
     positions_by_classroom = {}
 
@@ -44,9 +43,9 @@ def get_split_graphs(graph: nx.DiGraph, allocations: dict) -> dict:
     for i, (classroom, student_ids) in enumerate(classroom_allocs.items()):
         color = CLASSROOM_COLORS[i % len(CLASSROOM_COLORS)]
 
-        # Assign fixed random positions
+        # Assign fixed random positions (keys as str for consistency)
         positions = {
-            sid: {"x": random.randint(0, 800), "y": random.randint(0, 600)}
+            str(sid): {"x": random.randint(0, 800), "y": random.randint(0, 600)}
             for sid in student_ids
         }
         positions_by_classroom[classroom] = positions
@@ -84,34 +83,36 @@ def get_split_graphs(graph: nx.DiGraph, allocations: dict) -> dict:
 
     return {"subgraphs": data}
 
-
-
-
-
-def nx_to_cytoscape(graph: nx.DiGraph, positions: dict) -> list:
+def nx_to_cytoscape(graph, positions=None):
+    """
+    Converts a NetworkX graph to Cytoscape.js compatible elements.
+    Ensures all node and edge IDs are strings (no floats).
+    Also ensures all positions are JSON serializable (lists, not numpy arrays).
+    """
     elements = []
-
-    #for node, attrs in graph.nodes(data=True):
-    #    elements.append({
-    #        "data": {"id": str(node), "label": str(node), **attrs},
-    #        "position": positions.get(node, {"x": 0, "y": 0})  # fallback just in case
-    #    })
-
     for node, attrs in graph.nodes(data=True):
-        label = f"{attrs.get('first_name', '')} {attrs.get('last_name', '')}".strip()
-        elements.append({
-            "data": {
-                "id": str(node),
-                "label": label if label else str(node),
-                **attrs
-            },
-            "position": positions.get(node, {"x": 0, "y": 0})  # fallback just in case
-        })
+        node_id = str(int(node)) if isinstance(node, float) and node.is_integer() else str(node)
+        data = {"id": node_id, "label": attrs.get("label", node_id)}
+        data.update({k: v for k, v in attrs.items() if k != "label"})
+        element = {"data": data}
+        if positions and str(node) in positions:
+            pos = positions[str(node)]
+            if isinstance(pos, dict) and "x" in pos and "y" in pos:
+                element["position"] = {"x": float(pos["x"]), "y": float(pos["y"])}
+            else:
+                if hasattr(pos, "tolist"):
+                    pos = pos.tolist()
+                elif isinstance(pos, tuple):
+                    pos = list(pos)
+                element["position"] = {"x": float(pos[0]), "y": float(pos[1])}
+        elements.append(element)
 
     for u, v, attrs in graph.edges(data=True):
-        elements.append({
-            "data": {"source": str(u), "target": str(v), **attrs}
-        })
-
+        source_id = str(int(u)) if isinstance(u, float) and u.is_integer() else str(u)
+        target_id = str(int(v)) if isinstance(v, float) and v.is_integer() else str(v)
+        data = {"source": source_id, "target": target_id}
+        data.update(attrs)
+        element = {"data": data}
+        elements.append(element)
 
     return elements

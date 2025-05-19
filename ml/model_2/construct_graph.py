@@ -13,8 +13,14 @@ def construct_graph(db,cohort=None):
         nx.DiGraph: A directed graph with nodes and edges representing students and their relationships.
     """
     # Define the mapping of edge types
-    edge_type_map = {'friends': 0, 'advice': 1, 'disrespect': 2, 'feedback': 3, 'influential': 4}
-
+    edge_type_map =  {
+        "friends": 0,
+        "influential": 1,
+        "feedback": 2,
+        "more_time": 3,
+        "advice": 4,
+        "disrespect": 5
+    }
     # Initialize a directed graph
     graph = nx.DiGraph()
 

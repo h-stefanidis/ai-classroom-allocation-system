@@ -1,158 +1,180 @@
-import { useState } from "react";
+// Enhanced model comparison page using real backend data and dynamic model selection with Radar Chart
+
+import { useEffect, useState } from "react";
 import Grid from "@mui/material/Grid";
 import Card from "@mui/material/Card";
 import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
 import InputLabel from "@mui/material/InputLabel";
 import FormControl from "@mui/material/FormControl";
-
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
-import ComplexStatisticsCard from "examples/Cards/StatisticsCards/ComplexStatisticsCard";
-import ReportsBarChart from "examples/Charts/BarCharts/ReportsBarChart";
+import { Radar } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  RadialLinearScale,
+  PointElement,
+  LineElement,
+  Filler,
+  Tooltip,
+  Legend,
+} from "chart.js";
 
-const metrics = [
-  "Academic",
-  "Wellbeing",
-  "Behavior",
-  "Engagement",
-  "Stability",
-  "Friendship Bonds",
-];
+ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
-const randomStats = [60, 65, 50, 58, 52, 48];
+export default function ModelComparison() {
+  const [modelKeys, setModelKeys] = useState([]);
+  const [model1, setModel1] = useState("");
+  const [model2, setModel2] = useState("");
+  const [data1, setData1] = useState(null);
+  const [data2, setData2] = useState(null);
 
-const modelOptions = {
-  "Model A": [75, 72, 65, 74, 70, 68],
-  "Model B": [73, 70, 62, 72, 69, 66],
-  "Model C": [78, 76, 70, 82, 75, 71],
-};
+  useEffect(() => {
+    const keys = Object.keys(localStorage).filter(
+      (key) =>
+        key.startsWith("model") &&
+        !["loglevel", "isAuthenticated", "relationship_pref"].includes(key)
+    );
+    setModelKeys(keys);
+  }, []);
 
-export default function Comparison() {
-  const [selectedModel, setSelectedModel] = useState("Model A");
-  const modelStats = modelOptions[selectedModel];
+  const fetchModelData = async (runNumber) => {
+    if (!runNumber) {
+      console.error("Missing runNumber");
+      return null;
+    }
+
+    try {
+      const psychoRes = await fetch(`http://127.0.0.1:5000/psychometrics-stats-normalized?run_number=${runNumber}`);
+      const psychoStats = await psychoRes.json();
+
+      if (psychoStats.error) {
+        console.error("Error from psychometrics-stats-normalized:", psychoStats.error);
+        return null;
+      }
+
+      return psychoStats;
+    } catch (err) {
+      console.error("Fetch failed:", err);
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    if (model1) {
+      const runNumber = localStorage.getItem(model1);
+      console.log("Fetching model1 with runNumber:", runNumber);
+      fetchModelData(runNumber).then((result) => {
+        if (result) setData1(result);
+      });
+    }
+    if (model2) {
+      const runNumber = localStorage.getItem(model2);
+      console.log("Fetching model2 with runNumber:", runNumber);
+      fetchModelData(runNumber).then((result) => {
+        if (result) setData2(result);
+      });
+    }
+  }, [model1, model2]);
+
+  const renderRadarChart = (title, keys) => {
+    if (!data1 || !data2) return null;
+
+    const avg = (arr, key) => {
+      const values = arr.map((d) => d[key]).filter((v) => typeof v === "number");
+      return values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
+    };
+
+    const data1Classes = data1.psychometrics_by_classroom_normalized || [];
+    const data2Classes = data2.psychometrics_by_classroom_normalized || [];
+
+    const labels = keys;
+    const data1Values = keys.map((k) => avg(data1Classes, k));
+    const data2Values = keys.map((k) => avg(data2Classes, k));
+
+    return (
+      <Card sx={{ p: 3, mt: 5 }}>
+        <MDTypography variant="h6" gutterBottom>{title}</MDTypography>
+        <Radar
+          data={{
+            labels,
+            datasets: [
+              {
+                label: model1,
+                data: data1Values,
+                backgroundColor: "rgba(75,192,192,0.2)",
+                borderColor: "rgba(75,192,192,1)",
+                pointBackgroundColor: "rgba(75,192,192,1)",
+              },
+              {
+                label: model2,
+                data: data2Values,
+                backgroundColor: "rgba(255,99,132,0.2)",
+                borderColor: "rgba(255,99,132,1)",
+                pointBackgroundColor: "rgba(255,99,132,1)",
+              },
+            ],
+          }}
+          options={{
+            responsive: true,
+            scales: {
+              r: {
+                min: 0,
+                max: 1,
+                ticks: { stepSize: 0.2 },
+              },
+            },
+          }}
+        />
+      </Card>
+    );
+  };
 
   return (
     <DashboardLayout>
       <DashboardNavbar />
       <MDBox py={3}>
-        <Grid container spacing={3} alignItems="center">
-          <Grid item xs={12} md={6}>
-            <MDTypography variant="h5" fontWeight="bold">
-              Comparison
-            </MDTypography>
+        <Grid container spacing={3}>
+          <Grid item xs={6}>
+            <FormControl fullWidth>
+              <InputLabel>Model 1</InputLabel>
+              <Select value={model1} onChange={(e) => setModel1(e.target.value)}>
+                {modelKeys.map((key) => (
+                  <MenuItem key={key} value={key}>{key}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Grid>
-          <Grid item xs={12} md={6}>
-            <FormControl size="small" sx={{ minWidth: 200, float: "right" }}>
-              <InputLabel>Select Model</InputLabel>
-              <Select
-                value={selectedModel}
-                label="Select Model"
-                onChange={(e) => setSelectedModel(e.target.value)}
-              >
-                {Object.keys(modelOptions).map((model) => (
-                  <MenuItem key={model} value={model}>
-                    {model}
-                  </MenuItem>
+          <Grid item xs={6}>
+            <FormControl fullWidth>
+              <InputLabel>Model 2</InputLabel>
+              <Select value={model2} onChange={(e) => setModel2(e.target.value)}>
+                {modelKeys.map((key) => (
+                  <MenuItem key={key} value={key}>{key}</MenuItem>
                 ))}
               </Select>
             </FormControl>
           </Grid>
         </Grid>
 
-        {/* Metric Cards */}
-        <Grid container spacing={3} mt={3}>
-          {/* Random Allocation Metrics */}
-          <Grid item xs={12} md={6}>
-            <MDTypography variant="h6" mb={4}>
-              Random Allocation Metrics
-            </MDTypography>
-            <Grid container spacing={2}>
-              {metrics.map((metric, i) => (
-                <Grid item xs={12} sm={6} md={6} key={`random-${metric}`}>
-                  <ComplexStatisticsCard
-                    icon="shuffle"
-                    title={metric}
-                    count={`${randomStats[i]}%`}
-                    percentage={{ color: "error", label: "random strategy" }}
-                  />
-                </Grid>
-              ))}
-            </Grid>
-          </Grid>
+        {renderRadarChart("Psychometric Comparison", [
+          "comfortable",
+          "future",
+          "pwi_wellbeing",
+          "candidate_perc_effort",
+          "growth_mindset",
+          "opinion"
+        ])}
 
-          {/* Selected Model Metrics */}
-          <Grid item xs={12} md={6}>
-            <MDTypography variant="h6" mb={4}>
-              {selectedModel} Metrics
-            </MDTypography>
-            <Grid container spacing={2}>
-              {metrics.map((metric, i) => (
-                <Grid item xs={12} sm={6} md={6} key={`model-${metric}`}>
-                  <ComplexStatisticsCard
-                    icon="psychology"
-                    title={metric}
-                    count={`${modelStats[i]}%`}
-                    percentage={{ color: "success", label: "model strategy" }}
-                  />
-                </Grid>
-              ))}
-            </Grid>
-          </Grid>
-        </Grid>
-
-        {/* Bar Charts */}
-        <Grid container spacing={3} mt={6}>
-          <Grid item xs={12} md={6}>
-            <ReportsBarChart
-              color="error"
-              title="Random Allocation Performance"
-              description="Random allocation performance across metrics"
-              date="updated today"
-              chart={{
-                labels: metrics,
-                datasets: [
-                  {
-                    label: "Random",
-                    backgroundColor: "#ef5350",
-                    data: randomStats,
-                  },
-                ],
-              }}
-            />
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <ReportsBarChart
-              color="success"
-              title={`${selectedModel} Performance`}
-              description="Model allocation performance across metrics"
-              date="updated today"
-              chart={{
-                labels: metrics,
-                datasets: [
-                  {
-                    label: selectedModel,
-                    backgroundColor: "#66bb6a",
-                    data: modelStats,
-                  },
-                ],
-              }}
-            />
-          </Grid>
-        </Grid>
-
-        {/* Summary */}
         <MDBox mt={4}>
           <Card sx={{ p: 3 }}>
             <MDTypography variant="h6" fontWeight="medium" gutterBottom>
               Summary
             </MDTypography>
             <MDTypography variant="body2" color="text">
-              The model-based allocation consistently outperforms random grouping across key
-              academic and wellbeing metrics. Use this view to validate improvements across model
-              configurations.
+              This radar chart compares average classroom-level psychometric values for the selected models.
             </MDTypography>
           </Card>
         </MDBox>

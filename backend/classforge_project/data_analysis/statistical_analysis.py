@@ -1,5 +1,7 @@
 import pandas as pd
 from collections import defaultdict
+from db.db_manager import get_db
+
 
 def normalize_psychometric_scores(responses_df, psychometric_columns):
     # Normalize each column to 0-1 scale using min-max normalization
@@ -14,7 +16,11 @@ def normalize_psychometric_scores(responses_df, psychometric_columns):
     return norm_df
 
 
-def final_calculate_with_normalized_scores(db, run_number=None, cohort="2025"):
+def final_calculate_with_normalized_scores(run_number, cohort="2025"):
+    print("---------", run_number)
+    db= get_db()
+
+
     # Step 0: Get latest run_number if not provided
     latest_df = db.query_df("""
         SELECT run_number
@@ -22,13 +28,17 @@ def final_calculate_with_normalized_scores(db, run_number=None, cohort="2025"):
         ORDER BY id DESC
         LIMIT 1
     """)
-    if run_number is None:
+    if not run_number:
         if latest_df.empty:
             return {"error": "No run_number found."}
         run_number = latest_df.iloc[0]["run_number"]
 
+    print("---------", run_number, cohort)
+
     # Step 1: Get cohort participants
     participants_df = db.query_df("SELECT participant_id FROM raw.participants WHERE cohort = %s", (cohort,))
+    print("---------", "after this", participants_df)
+
     participant_ids = set(participants_df["participant_id"].tolist())
 
     # Step 2: Get classroom allocations
@@ -46,6 +56,7 @@ def final_calculate_with_normalized_scores(db, run_number=None, cohort="2025"):
         "friend": "friends", "influence": "influential", "feedback": "feedback",
         "more_time": "more_time", "advice": "advice", "disrespect": "disrespect"
     }
+    print("---------", run_number)
 
     preservation_result = {}
     for rel_type, table in relationship_tables.items():

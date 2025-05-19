@@ -520,3 +520,43 @@ def get_academic_constraint(db_session):
     # Convert to dict mapping: participant_id -> perc_academic
     constraint_map = dict(zip(df['participant_id'], df['perc_academic']))
     return constraint_map
+
+
+import pandas as pd
+from collections import defaultdict
+
+def compute_classroom_avg_performance(db, run_number):
+    """
+    Computes the average academic, effort, and attendance scores
+    for each classroom based on the given run_number.
+    
+    Args:
+        db: Database connection object.
+        run_number: UUID of the allocation run.
+
+    Returns:
+        pd.DataFrame with classroom_id, avg_perc_academic, avg_attendance, avg_perc_effort
+    """
+    query = """
+SELECT
+    ca.classroom_id,
+    ROUND(AVG(NULLIF(p.perc_academic, 'NA')::NUMERIC), 2) AS avg_perc_academic,
+    ROUND(AVG(NULLIF(p.attendance, 'NA')::NUMERIC), 2) AS avg_attendance,
+    ROUND(AVG(NULLIF(p.perc_effort, 'NA')::NUMERIC), 2) AS avg_perc_effort
+FROM
+    public.classroom_allocation ca
+JOIN
+    raw.participants p ON ca.participant_id = p.participant_id
+WHERE
+    ca.run_number = %s
+GROUP BY
+    ca.classroom_id
+ORDER BY
+    ca.classroom_id;
+
+    """
+
+    db=get_db()
+    avg_per= db.query_df(query, (run_number,))
+    print(avg_per, run_number)
+    return avg_per

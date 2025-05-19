@@ -31,13 +31,27 @@ const EXPIRATION_HOURS = 24;
 
 function AllocationPage() {
   const [classroomCount, setClassroomCount] = useState(3);
-  const [selectedModel, setSelectedModel] = useState("GraphSAGE");
+  const [selectedModel, setSelectedModel] = useState("model1");
   const [allocatedClassrooms, setAllocatedClassrooms] = useState([]);
   const [loading, setLoading] = useState(false);
   const [snack, setSnack] = useState({ open: false, message: "", severity: "success" });
   const [insightClassroom, setInsightClassroom] = useState(null);
   const [selectedOption, setSelectedOption] = useState("perc_academic");
   const [lastRunNumber, setLastRunNumber] = useState(null);
+  const [relationshipWeights, setRelationshipWeights] = useState({
+    friend: 1.0,
+    influence: 0.8,
+    feedback: 0.5,
+    more_time: 0.3,
+    advice: 0.6,
+    disrespect: 0.0,
+  });
+
+  const modelOptions = [
+    { label: "Model 1", value: "model1" },
+    { label: "Model with Relationship Pref", value: "relationship_pref" },
+    { label: "Model 3", value: "model3" },
+  ];
 
   useEffect(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -48,11 +62,10 @@ function AllocationPage() {
       if (ageInHours < EXPIRATION_HOURS) {
         setAllocatedClassrooms(parsed.data || []);
         setClassroomCount(parsed.count || 3);
-        setSelectedModel(parsed.model || "GraphSAGE");
+        setSelectedModel(parsed.model || "model1");
 
-        const model = parsed.model || "GraphSAGE";
-        setSelectedModel(model);
-        const run = localStorage.getItem(`${model}_lastRunNumber`);
+        const model = parsed.model || "model1";
+        const run = localStorage.getItem(model);
         if (run) setLastRunNumber(run);
       } else {
         localStorage.removeItem(LOCAL_STORAGE_KEY);
@@ -61,7 +74,7 @@ function AllocationPage() {
   }, []);
 
   const fetchAndInjectPsychometrics = async (runNumber, classroomMap) => {
-    const statsRes = await fetch(`http://127.0.0.1:5000/psychometrics-stats-normalized`);
+    const statsRes = await fetch("http://127.0.0.1:5000/psychometrics-stats-normalized");
     const statsData = await statsRes.json();
 
     statsData.psychometrics_by_classroom_normalized.forEach((entry) => {
@@ -106,19 +119,35 @@ function AllocationPage() {
     setLoading(true);
     try {
       let url = "";
-      if (selectedModel === "Latest") {
-        url = `http://127.0.0.1:5000/get_allocation`;
-      } else if (selectedModel === "ByPreference") {
-        url = `http://127.0.0.1:5000/get_allocation_by_user_preference?option=${selectedOption}`;
-      } else {
+      let method = "GET";
+      let body = null;
+
+      if (selectedModel === "model1") {
+        url = "http://127.0.0.1:5000/get_allocation";
+      } else if (selectedModel === "relationship_pref") {
+        url = "http://127.0.0.1:5000/get_allocation_by_user_preference";
+        method = "POST";
+        body = JSON.stringify({
+          friend: 1.0,
+          influence: 0.8,
+          feedback: 0.5,
+          more_time: 0.3,
+          advice: 0.6,
+          disrespect: 0.0,
+        });
+      } else if (selectedModel === "model3") {
         url = `http://127.0.0.1:5000/run_model2?classroomCount=${classroomCount}&option=${selectedOption}`;
       }
 
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        method,
+        headers: method === "POST" ? { "Content-Type": "application/json" } : undefined,
+        body,
+      });
+
       const data = await response.json();
       if (!data || !data.Allocations) throw new Error("No data received");
 
-      // Prepare classroomMap
       const classroomMap = {};
       Object.entries(data.Allocations).forEach(([classroom, students]) => {
         classroomMap[classroom] = {
@@ -132,70 +161,14 @@ function AllocationPage() {
         };
       });
 
-      const updatedClassrooms = Object.values(classroomMap);
+      if (data.Run_Number !== undefined) {
+        localStorage.setItem(selectedModel, data.Run_Number);
+        setLastRunNumber(data.run_number);
+        await fetchAndInjectPsychometrics(data.Run_Number, classroomMap);
+      }
 
-      // Store in local storage (if needed)
-      if (selectedModel === "GraphSAGE" || selectedModel === "Ensemble") {
-        localStorage.setItem(
-          LOCAL_STORAGE_KEY,
-          JSON.stringify({
-            timestamp: Date.now(),
-            model: selectedModel,
-            count: classroomCount,
-            data: updatedClassrooms,
-          })
-        );
-
-        if (data.run_number !== undefined) {
-          localStorage.setItem(`${selectedModel}_lastRunNumber`, data.run_number);
-          setLastRunNumber(data.run_number);
-
-          if (data.run_number !== undefined) {
-            localStorage.setItem(`${selectedModel}_lastRunNumber`, data.run_number);
-            setLastRunNumber(data.run_number);
-
-            // ✅ Call the helper
-            await fetchAndInjectPsychometrics(data.run_number, classroomMap);
-          }
-
-          // Inject key stats into classroomMap
-          statsData.psychometrics_by_classroom_normalized.forEach((entry) => {
-            const id = entry.classroom_id;
-            if (classroomMap[id]) {
-              classroomMap[id].psychometrics = {
-                growth_mindset: entry.growth_mindset,
-                comfortable: entry.comfortable,
-                isolated: entry.isolated,
-                criticises: entry.criticises,
-                manbox5_overall: entry.manbox5_overall,
-                wellbeing: entry.pwi_wellbeing,
-              };
-            }
-          });
-
-          statsData.relationship_preservation.friend.forEach((entry) => {
-            const id = entry.classroom_id;
-            if (classroomMap[id]) {
-              classroomMap[id].relationships = {
-                friendsPreserved: entry.percentage,
-              };
-            }
-          });
-
-          statsData.relationship_preservation.advice.forEach((entry) => {
-            const id = entry.classroom_id;
-            if (classroomMap[id]) {
-              classroomMap[id].relationships.advicePreserved = entry.percentage;
-            }
-          });
-
-          statsData.relationship_preservation.influence.forEach((entry) => {
-            const id = entry.classroom_id;
-            if (classroomMap[id]) {
-              classroomMap[id].relationships.influencePreserved = entry.percentage;
-            }
-          });
-        }
+      if (["model1", "model3"].includes(selectedModel)) {
+        localStorage.setItem(selectedModel, data.Run_Number.toString());
       }
 
       setAllocatedClassrooms(Object.values(classroomMap));
@@ -257,24 +230,23 @@ function AllocationPage() {
               </TextField>
             </Grid>
 
-            <Grid item xs={12} md={4}>
-              <FormControl component="fieldset">
-                <FormLabel component="legend">Allocation Focus</FormLabel>
-                <RadioGroup
-                  row
-                  value={selectedOption}
-                  onChange={(e) => setSelectedOption(e.target.value)}
-                >
-                  <FormControlLabel value="perc_academic" control={<Radio />} label="Academic" />
-                  <FormControlLabel value="perc_effort" control={<Radio />} label="Effort" />
-                  <FormControlLabel
-                    value="perc_attendance"
-                    control={<Radio />}
-                    label="Attendance"
-                  />
-                </RadioGroup>
-              </FormControl>
-            </Grid>
+            {selectedModel === "model3" && (
+  <Grid item xs={12} md={4}>
+    <FormControl component="fieldset">
+      <FormLabel component="legend">Allocation Focus</FormLabel>
+      <RadioGroup
+        row
+        value={selectedOption}
+        onChange={(e) => setSelectedOption(e.target.value)}
+      >
+        <FormControlLabel value="perc_academic" control={<Radio />} label="Academic" />
+        <FormControlLabel value="perc_effort" control={<Radio />} label="Effort" />
+        <FormControlLabel value="perc_attendance" control={<Radio />} label="Attendance" />
+      </RadioGroup>
+    </FormControl>
+  </Grid>
+)}
+
 
             <Grid item xs={12} md={2}>
               <TextField
@@ -285,25 +257,21 @@ function AllocationPage() {
                 onChange={(e) => {
                   const model = e.target.value;
                   setSelectedModel(model);
-                  const storedRun = localStorage.getItem(`${model}_lastRunNumber`);
-                  if (storedRun) {
-                    setLastRunNumber(storedRun);
-                  } else {
-                    setLastRunNumber(null);
-                  }
+                  const storedRun = localStorage.getItem(model);
+                  setLastRunNumber(storedRun || null);
                 }}
                 size="medium"
               >
-                {["GraphSAGE", "Ensemble", "Latest", "ByPreference"].map((model) => (
-                  <MenuItem key={model} value={model}>
-                    {model}
+                {modelOptions.map(({ label, value }) => (
+                  <MenuItem key={value} value={value}>
+                    {label}
                   </MenuItem>
                 ))}
               </TextField>
 
               {lastRunNumber && (
                 <MDTypography variant="caption" color="text">
-                  Last run for <strong>{selectedModel}</strong>: #{lastRunNumber}
+                  {/* Last run for <strong>{selectedModel}</strong>: #{lastRunNumber} */}
                 </MDTypography>
               )}
             </Grid>
@@ -329,6 +297,42 @@ function AllocationPage() {
               >
                 Clear Allocations
               </Button>
+              {selectedModel === "relationship_pref" && (
+  <Grid item xs={12}>
+    <Card variant="outlined" sx={{ p: 2, mt: 2 }}>
+      <MDTypography variant="subtitle1" mb={1}>
+        Relationship Weights (-1 to 1)
+      </MDTypography>
+      <Grid container spacing={2}>
+        {[
+          "friend",
+          "influence",
+          "feedback",
+          "more_time",
+          "advice",
+          "disrespect",
+        ].map((key) => (
+          <Grid item xs={12} md={4} key={key}>
+            <TextField
+              type="number"
+              fullWidth
+              label={key.charAt(0).toUpperCase() + key.slice(1).replace("_", " ")}
+              inputProps={{ min: -1, max: 1, step: 0.1 }}
+              value={relationshipWeights[key] || 0}
+              onChange={(e) =>
+                setRelationshipWeights({
+                  ...relationshipWeights,
+                  [key]: parseFloat(e.target.value),
+                })
+              }
+            />
+          </Grid>
+        ))}
+      </Grid>
+    </Card>
+  </Grid>
+)}
+
             </Grid>
           </Grid>
 
@@ -337,6 +341,9 @@ function AllocationPage() {
             <strong>{selectedModel}</strong> model based on the selected metric.
           </MDTypography>
         </Card>
+
+        {/* Cards for allocations will still appear below */}
+        {/* ... Keep your cards, modal, and snackbar rendering here (unchanged) ... */}
 
         {/* Classroom Cards */}
         <Grid container spacing={4}>
@@ -431,7 +438,7 @@ function AllocationPage() {
                     </MDBox>
                   )}
 
-                  {classroom.relationships && (
+                  {/* {classroom.relationships && (
                     <MDBox px={2} py={1} bgcolor="#fafafa">
                       <MDTypography variant="body2">
                         <strong>Friendships Preserved:</strong>{" "}
@@ -446,7 +453,7 @@ function AllocationPage() {
                         {classroom.relationships.influencePreserved.toFixed(1)}%
                       </MDTypography>
                     </MDBox>
-                  )}
+                  )} */}
                 </Card>
               </Grid>
             </Fade>
@@ -515,4 +522,5 @@ function AllocationPage() {
     </DashboardLayout>
   );
 }
+
 export default AllocationPage;

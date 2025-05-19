@@ -12,12 +12,11 @@ stats_bp = Blueprint('stats', __name__)
 
 @stats_bp.route("/psychometrics-stats-normalized", methods=["GET"])
 def final_calculate_with_normalized_score():
-    db = get_db()
-    run_number = request.args.get("run_number",None)
+    run_number = request.args.get("run_number","")
     cohort = request.args.get("cohort", "2025")
-
+    print("---------", run_number)
     try:
-        result = final_calculate_with_normalized_scores(db, run_number, cohort)
+        result = final_calculate_with_normalized_scores(run_number, cohort)
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500

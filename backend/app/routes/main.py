@@ -21,7 +21,8 @@ from db.db_usage import (
     generate_run_number,
     fetch_student_dict_from_id,
     get_academic_constraint,
-    classroom_update
+    classroom_update,
+    compute_classroom_avg_performance
 )
 
 # ML pipeline imports
@@ -54,6 +55,15 @@ def run_samsun_model_pipeline():
     full_json_dict = fetch_student_dict_from_id(db, json_data)
     compute_preserved_relationships(db, clustered_data, full_json_dict["Run_Number"])
     save_edge_relationships_db(db, clustered_data, full_json_dict["Run_Number"], participant_ids)
+    avg_performance = compute_classroom_avg_performance(db, full_json_dict["Run_Number"])
+    # ✅ Convert to the desired nested dict format
+    avg_performance = {
+        "perc_academic": dict(zip(avg_performance["classroom_id"], avg_performance["avg_perc_academic"])),
+        "perc_attendance": dict(zip(avg_performance["classroom_id"], avg_performance["avg_attendance"])),
+        "perc_effort": dict(zip(avg_performance["classroom_id"], avg_performance["avg_perc_effort"])),
+    }
+
+    full_json_dict["AveragePerformance"] = avg_performance
     return jsonify(full_json_dict)
 
 @pipeline_bp.route("/get_allocation_by_user_preference", methods=['POST'])
@@ -71,6 +81,14 @@ def get_allocation_by_user_preference_model1():
     full_json_dict = fetch_student_dict_from_id(db, json_data)
     compute_preserved_relationships(db, clustered_data, full_json_dict["Run_Number"])
     save_edge_relationships_db(db, clustered_data, full_json_dict["Run_Number"], participant_ids)
+    avg_performance = compute_classroom_avg_performance(db, full_json_dict["Run_Number"])
+    # ✅ Convert to the desired nested dict format
+    avg_performance = {
+        "perc_academic": dict(zip(avg_performance["classroom_id"], avg_performance["avg_perc_academic"])),
+        "perc_attendance": dict(zip(avg_performance["classroom_id"], avg_performance["avg_attendance"])),
+        "perc_effort": dict(zip(avg_performance["classroom_id"], avg_performance["avg_perc_effort"])),
+    }
+    full_json_dict["AveragePerformance"] = avg_performance
     return jsonify(full_json_dict)
 
 @pipeline_bp.route("/cytoscape_subgraphs", methods=['GET'])

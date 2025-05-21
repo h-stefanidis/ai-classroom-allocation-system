@@ -102,17 +102,6 @@ The application will be accessible at `http://localhost:3000`.
 
 ---
 
-## 🧪 Testing
-
-To run the test suite:
-
-```bash
-cd backend
-pytest
-```
-
----
-
 ## 📄 License
 
 This project is licensed under the MIT License. See the [LICENSE](https://github.com/h-stefanidis/ai-classroom-allocation-system/blob/main/LICENSE) file for details.

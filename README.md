@@ -6,7 +6,7 @@
 
 ## 🚀 Features
 
-- **AI-Driven Allocation**: Utilizes Graph Neural Networks (GNNs) and Genetic Algorithms to form optimal student groupings.
+- **AI-Driven Allocation**: Utilizes Graph Neural Networks (GNNs) to form optimal student groupings.
 - **Social Network Analysis**: Incorporates social connections to promote positive peer interactions.
 - **User-Friendly Interface**: Built with React and Chakra UI for an intuitive user experience.
 - **Data Visualization**: Employs Recharts for insightful visual representations.
